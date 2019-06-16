@@ -5,6 +5,7 @@ import inspect
 import os
 from abc import ABC, abstractmethod
 from typing import Any, Iterator, Union
+import pathlib
 
 PathLike = Union[str, os.PathLike]
 
@@ -36,6 +37,9 @@ class BasePath(os.PathLike, ABC):
     @property
     def path(self) -> str:
         return self._path
+
+    def to_pathlib(self) -> pathlib.Path:
+        return pathlib.Path(self)
 
     def _validate(self, path: PathLike) -> None:
         if path == self.path:

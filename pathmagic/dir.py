@@ -218,6 +218,11 @@ class Dir(BasePath):
         self._bind(self.dirclass(os.path.join(self.path, name), safemode=self.safe, lazy_instanciation=self.lazy, fileclass=self.fileclass, dirclass=self.dirclass))
         return self._dirs[name]
 
+    def symlink_to(self, name: str, target: PathLike) -> None:
+        link = self.newdir(name)
+        link.delete()
+        pathlib.Path(link).symlink_to(target=target, target_is_directory=pathlib.Path(target).is_dir())
+
     def seekfiles(self, depth: int = None, name: str = None, dirpath: str = None, contents: str = None, extensions: Collection[str] = None, re_flags: int = 0) -> Iterator[File]:
         """
         Iterate recursively over the File objects within this Dir and all sub-Dirs, returning those that match all the regex patterns provided and have the correct extension.
