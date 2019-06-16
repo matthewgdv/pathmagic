@@ -1,53 +1,26 @@
 Overview
 ====================
 
-Provides a Maybe class which can be used to avoid common 'var if var is not None else handle_none(var)' structures.
-Maybe allows item access, attribute access, and method calls to be chained off it. It can be combined with most operators.
+[overview]
 
 Installation
 ====================
 
 To install use pip:
 
-    $ pip install maybe
+    $ pip install [project_name]
 
 
 Or clone the repo:
 
-    $ git clone https://github.com/matthewgdv/maybe.git
+    $ git clone https://github.com/matthewgdv/[project_name].git
     $ python setup.py install
 
 
 Usage
 ====================
 
-The simplest use-case is to Wrap the value in the Maybe class and call Maybe.else_() with an alternative value. If the initial value
-was None, the alternative value will be returned. Otherwise the original value will be returned.
-
-    Maybe(None).else_("other")                      # "other"
-    Maybe("hi").else_("other")                      # "hi"
-
-More complex uses involve chaining item/attribute access and method calls off the initial value.
-If at any point an IndexError (item access), AttributeError (attribute access), or TypeError (method call) is raised, the alternative
-value will be returned. Other exception classes are not caught by Maybe (intentionally) and will have be to handled normally.
-
-    Maybe("hi").monkeyweasel[3].else_("other")      # "other"
-    Maybe({1: "1"})[1].isnumeric().else_("other")   # True
-
-Most operators can be used with Maybe.
-
-    (Maybe(8)/2).else_("other")                     # 4.0
-    (Maybe("hi").upper() + "!").else_("other")      # "HI!"
-    (Maybe(None) // 3).else_("other")               # "other"
-    (Maybe(11) % 4).else_("other")                  # 3
-
-If None would be retuned as a result of operations performed on the Maybe object, then None will be returned from Maybe.else_(), not
-the alternative value. This is because None is a legitimate output value, so long as it was not the original input value.
-
-    Maybe({1: "1"}).get(2).else_("other")           # None
-
-The Maybe class will show the repr of the object it currently contains in its own repr (if it would return the alternative value from Maybe.else_() it will show it as MissingValue).
-Additionally, the Maybe class will be truthy whenever it would return what it is currently holding, and will be falsy when it would return the alternative.
+[Usage]
 
 Contributing
 ====================
@@ -60,7 +33,7 @@ You can contribute in many ways:
 Report Bugs
 --------------------
 
-Report bugs at https://github.com/matthewgdv/maybe/issues
+Report bugs at https://github.com/matthewgdv/[project_name]/issues
 
 If you are reporting a bug, please include:
 
@@ -89,7 +62,7 @@ official docs, in docstrings, or even on the web in blog posts, articles, and su
 Submit Feedback
 --------------------
 
-The best way to send feedback is to file an issue at https://github.com/matthewgdv/maybe/issues.
+The best way to send feedback is to file an issue at https://github.com/matthewgdv/[project_name]/issues.
 
 If you are proposing a new feature:
 
