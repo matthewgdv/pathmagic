@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from .file import File
 
 
+# TODO: cause dotaccessors to update before accessing, to prevent them being unable to find things that are actually there
+
 class Accessor(ABC):
     """Utility class for managing item access to the underlying _files and _dirs attributes held by Dir objects."""
 
