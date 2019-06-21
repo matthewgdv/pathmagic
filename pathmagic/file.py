@@ -27,22 +27,20 @@ class File(BasePath):
     the bool() resolves to true if the file is not empty, and iteration yields one line at a time. Changes to any object property (setting it) will be reflected in the file system.
 
     The file's name, prename (name without extension), extension, directory (as a Dir object), path (as a string) are properties that will cause the relevant changes in the
-    filesystem when set. The safemode attribute prevents overwriting other files with this one when moving this file around the filesystem using its properties and methods.
+    filesystem when set. The 'if_exists' contols behaviour when copying or moving files into paths with existing file system objects, while using this object's properties and methods.
+    The options are listed in this class' 'IfExists' enumeration.
     """
 
-    def __init__(self, path: PathLike, safemode: bool = True, force_read: bool = False, dirclass: Type[Dir] = None) -> None:
+    def __init__(self, path: PathLike, if_exists: str = BasePath.DEFAULT_IF_EXISTS, dirclass: Type[Dir] = None) -> None:
         self._path = self._name = self._prename = self._extension = None  # type: str
         self._contents: Any = None
-        path, self.safe, self.force_read, self._format = os.path.realpath(path), safemode, force_read, FormatHandler(self)
+        path, self.if_exists, self._format = os.path.realpath(path), if_exists, FormatHandler(self)
 
         self._dir: Dir = None
         self._set_dir_constructor(dirclass)
 
         self._prepare_file_if_not_exists(path)
         self._set_params(path)
-
-        self._created = os.path.getctime(self.path)
-        self._modified = os.path.getmtime(self.path)
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(path={repr(self.path)}, lines={len(self) or '?'})"
@@ -142,13 +140,12 @@ class File(BasePath):
     @property
     def created(self) -> dt:
         """Return the File's created_time. Read-only."""
-        return dt.fromtimestamp(self._created)
+        return dt.fromtimestamp(os.path.getctime(self.path))
 
     @property
     def modified(self) -> dt:
         """Return the File's last_modified_time. Read-only."""
-        self._synchronize()
-        return dt.fromtimestamp(self._modified)
+        return dt.fromtimestamp(os.path.getmtime(self.path))
 
     def read(self, **kwargs: Any) -> str:
         """
@@ -247,11 +244,6 @@ class File(BasePath):
         directory._bind(self, preserve_original=False)
         return self
 
-    def setsafemode(self, safemode: bool) -> File:
-        """Set this File's 'safe' attribute to the specified boolean value. Returns self and thus allows chaining."""
-        self.safe = safemode
-        return self
-
     def delete(self, backup: bool = False) -> None:
         """Delete this File's object's mapped file from the file system. The File object will persist and may still be used."""
         if backup:
@@ -269,10 +261,7 @@ class File(BasePath):
         return cls(sys.modules['__main__'].__file__, *args, **kwargs)
 
     def _synchronize(self, **kwargs: Any) -> None:
-        real_lmd = os.path.getmtime(self._path)
-        if self.force_read or self._contents is None or not self._modified == real_lmd or kwargs:
-            self._contents = self._format.read(**kwargs)
-            self._modified = real_lmd
+        self._contents = self._format.read(**kwargs)
 
     def _set_dir_constructor(self, dirclass: Type[Dir]) -> None:
         from .dir import Dir

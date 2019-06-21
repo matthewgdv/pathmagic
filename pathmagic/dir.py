@@ -27,12 +27,13 @@ class Dir(BasePath):
     The len() represents the number of combined files and dirs, the str() returns the Dir's path, the bool() resolves to true if the Dir is not empty, and iteration yields the paths
     of all the contained File and Dir objects, one at a time. Changes to any object property (setting it) will be reflected in the file system.
 
-    The safemode attribute prevents overwriting other files and dirs, and deleting non-empty dirs, when using this object's properties and methods.
+    The 'if_exists' attribute contols behaviour when copying or moving files into paths with existing file system objects, while using this object's properties and methods. The options
+    are listed in this class' 'IfExists' enumeration.
     """
 
-    def __init__(self, path: PathLike = "", safemode: bool = True, lazy_instanciation: bool = None, fileclass: Type[File] = None, dirclass: Type[Dir] = None) -> None:
+    def __init__(self, path: PathLike = "", if_exists: str = BasePath.DEFAULT_IF_EXISTS, lazy_instanciation: bool = None, fileclass: Type[File] = None, dirclass: Type[Dir] = None) -> None:
         self._path = self._name = None  # type: str
-        path, self.safe = os.path.realpath(path), safemode
+        self.if_exists, path = if_exists, os.path.realpath(path)
         self.lazy = Maybe(lazy_instanciation).else_(False if is_running_in_ipython() else True)
         self.fileclass, self.dirclass = Maybe(fileclass).else_(File), Maybe(dirclass).else_(type(self))
         self._dir: Dir = None
@@ -86,7 +87,7 @@ class Dir(BasePath):
     def dir(self) -> Dir:
         """Return or set the Dir's directory as a Dir object. Implicitly calls that Dir object's '_bind' method."""
         if self._dir is None:
-            self._dir = self.dirclass(os.path.dirname(self.path), fileclass=self.fileclass, safemode=self.safe)
+            self._dir = self.dirclass(os.path.dirname(self.path), fileclass=self.fileclass, if_exists=self.if_exists)
         return self._dir
 
     @dir.setter
@@ -143,7 +144,7 @@ class Dir(BasePath):
     def newcopy(self, path: PathLike) -> Dir:
         """Create a new copy of this Dir at the specified path. Returns the copy."""
         self.copy(path)
-        return type(self)(path, safemode=self.safe, fileclass=self.fileclass)
+        return type(self)(path, if_exists=self.if_exists, fileclass=self.fileclass)
 
     def copy(self, path: PathLike) -> Dir:
         """Create a new copy of this Dir at the specified path. Returns self."""
@@ -155,14 +156,14 @@ class Dir(BasePath):
         return self
 
     def newcopyto(self, directory: PathLike) -> Dir:
-        """Create a new copy of this Dir WITHIN (not at) the specified directory. If passed an existing Dir, will implicitly call that Dir's '_bind' method. Otherwise it will instantiate a new Dir first. Returns the copy."""
-        parent = self.dirclass.from_pathlike(directory, safemode=self.safe, fileclass=self.fileclass)
+        """Create a new copy of this Dir within the specified path. If passed an existing Dir, both objects will implicitly call acquire references to each other. Otherwise it will instantiate a new Dir first. Returns the copy."""
+        parent = self.dirclass.from_pathlike(directory, if_exists=self.if_exists, fileclass=self.fileclass)
         parent._bind(self, validate=True)
         return parent.dirs[self.name]
 
     def copyto(self, directory: PathLike) -> Dir:
-        """Create a new copy of this Dir WITHIN (not at) the specified directory. If passed an existing Dir, will implicitly call that Dir's '_bind' method. Otherwise it will instantiate a new Dir first. Returns self."""
-        self.dirclass.from_pathlike(directory, safemode=self.safe, fileclass=self.fileclass)._bind(self, validate=True)
+        """Create a new copy of this Dir within the specified path. If passed an existing Dir, both objects will implicitly call acquire references to each other. Otherwise it will instantiate a new Dir first. Returns self."""
+        self.dirclass.from_pathlike(directory, if_exists=self.if_exists, fileclass=self.fileclass)._bind(self, validate=True)
         return self
 
     def move(self, path: PathLike) -> Dir:
@@ -173,26 +174,18 @@ class Dir(BasePath):
         return self
 
     def moveto(self, directory: PathLike) -> Dir:
-        """Move this Dir to the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns self."""
-        self.dirclass.from_pathlike(directory, safemode=self.safe, fileclass=self.fileclass)._bind(self, preserve_original=False, validate=True)
-        return self
-
-    def setsafemode(self, safemode: bool) -> Dir:
-        """Set this object's 'safe' attribute to the specified boolean value. Returns self and thus allows chaining."""
-        self.safe = safemode
+        """Move this Dir to the specified Dir object. If passed an existing Dir, both objects will implicitly call acquire references to each other. Returns self."""
+        self.dirclass.from_pathlike(directory, if_exists=self.if_exists, fileclass=self.fileclass)._bind(self, preserve_original=False, validate=True)
         return self
 
     def delete(self) -> None:
-        """Delete this Dir object's mapped directory from the file system. The Dir object will persist and may still be used. Requires 'safe' attribute set to False when the Dir is non-empty."""
-        if self.safe and (self.files() or self.dirs()):
-            raise PermissionError(f"Safe mode prevents deleting {self} while it contains other files or dirs. If this is desired behaviour set the 'safe' attribute to 'False'.")
-        else:
-            shutil.rmtree(self._path)
+        """Delete this Dir object's mapped directory from the file system. The Dir object will persist and may still be used."""
+        shutil.rmtree(self._path)
 
     def clear(self) -> Dir:
-        """Delete all files and directories contained within this Dir. This Dir's 'safe' attribute will be passed on to the objects being deleted to determine their permissions for recursive deletions."""
+        """Delete all files and directories contained within this Dir."""
         for pathlike in self:
-            pathlike.setsafemode(self.safe).delete()
+            pathlike.delete()
         return self
 
     def makefile(self, name: str, extension: str = None) -> Dir:
@@ -215,13 +208,13 @@ class Dir(BasePath):
 
     def newdir(self, name: str) -> Dir:
         """Instantiate a new Dir with the specified name within this Dir. Returns that Dir."""
-        self._bind(self.dirclass(os.path.join(self.path, name), safemode=self.safe, lazy_instanciation=self.lazy, fileclass=self.fileclass, dirclass=self.dirclass))
+        self._bind(self.dirclass(os.path.join(self.path, name), if_exists=self.if_exists, lazy_instanciation=self.lazy, fileclass=self.fileclass, dirclass=self.dirclass))
         return self._dirs[name]
 
-    def symlink_to(self, name: str, target: PathLike) -> None:
-        link = self.newdir(name)
+    def symlink_to(self, target: PathLike, name: str = None, target_is_directory: bool = True) -> None:
+        link = (self.newdir if target_is_directory else self.newfile)(Maybe(name).else_(os.path.basename(target)))
         link.delete()
-        pathlib.Path(link).symlink_to(target=target, target_is_directory=pathlib.Path(target).is_dir())
+        pathlib.Path(link).symlink_to(target=target, target_is_directory=target_is_directory)
 
     def seekfiles(self, depth: int = None, name: str = None, dirpath: str = None, contents: str = None, extensions: Collection[str] = None, re_flags: int = 0) -> Iterator[File]:
         """
@@ -388,7 +381,7 @@ class Dir(BasePath):
     def _set_params(self, path: str, move: bool = True) -> None:
         name = os.path.basename(path)
         new_dirpath = os.path.dirname(path)
-        directory = None if self._dir is None else (self.dirclass(new_dirpath, fileclass=self.fileclass, safemode=self.safe) if self.dir.path != new_dirpath else self.dir)
+        directory = None if self._dir is None else (self.dirclass(new_dirpath, fileclass=self.fileclass, if_exists=self.if_exists) if self.dir.path != new_dirpath else self.dir)
 
         if move:
             shutil.move(self.path, path)
