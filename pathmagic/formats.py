@@ -306,10 +306,30 @@ class Serialized(Format):
         self.serializer.serialize(item, **kwargs)
 
 
+class Json(Format):
+    formats = {"json"}
+
+    def initialize(self) -> None:
+        import json
+
+        self.module = json
+        self.readfuncs.update({"json": self.module.load})
+        self.writefuncs.update({"json": self.module.dump})
+
+    def read(self, **kwargs) -> Any:
+        with open(self.file) as file:
+            return self.readfuncs[self.file.extension](file)
+
+    def write(self, item: Any, indent: int = 4, **kwargs) -> None:
+        with open(self.file, "w") as file:
+            self.writefuncs[self.file.extension](item, file, indent=indent)
+
+
 class MarkUp(Format):
     formats = {"html", "xml"}
 
     def __init__(self, file: File) -> None:
+        super().__init__(file)
         self.io = Default(file)
 
     def initialize(self) -> None:

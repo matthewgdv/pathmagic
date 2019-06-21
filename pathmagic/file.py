@@ -151,9 +151,6 @@ class File(BasePath):
         """
         Return the File's contents as a string if it is not encoded, else attempt to return a useful Python object representing the file contents (e.g. Pandas DataFrame for tabular files, etc.).
         If provided, *args and **kwargs will be passed on to whichever function will be used to read in the File's contents. Call the 'readhelp' method for that function's documentation.
-        This method is lazy by default and will usually only perform a true I/O read if the File object's last_modified_time has fallen out of sync with the file's last_modified_time
-        in the file system. This may cause errors when other applications programmatically set the file's contents during this object's lifetime without updating the OS file metadata.
-        Such issues can be avoided by setting the File's 'force_read' attribute to True, at the expense of additional I/O.
         """
         self._synchronize(**kwargs)
         return self._contents
