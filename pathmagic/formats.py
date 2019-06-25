@@ -317,8 +317,11 @@ class Json(Format):
         self.writefuncs.update({"json": self.module.dump})
 
     def read(self, **kwargs) -> Any:
-        with open(self.file) as file:
-            return self.readfuncs[self.file.extension](file)
+        try:
+            with open(self.file) as file:
+                return self.readfuncs[self.file.extension](file)
+        except self.module.JSONDecodeError:
+            return Default(self.file).read() or None
 
     def write(self, item: Any, indent: int = 4, **kwargs) -> None:
         with open(self.file, "w") as file:
