@@ -20,14 +20,11 @@ def is_running_in_ipython() -> bool:
         return False
 
 
-class IfExists(Enum):
-    Fail, Allow, MakeCopy = "fail", "allow", "make_copy"
-
-
 class BasePath(os.PathLike, ABC):
     """Abstract Base Class from which 'File' and 'Dir' objects derive."""
 
-    IfExists = IfExists
+    class IfExists(Enum):
+        Fail, Allow, MakeCopy = "fail", "allow", "make_copy"
 
     DEFAULT_IF_EXISTS = IfExists.Fail
     if_exists: bool
@@ -55,11 +52,11 @@ class BasePath(os.PathLike, ABC):
             raise FileExistsError(f"Path '{path}' is already this {type(self).__name__}'s path. Cannot copy or move a {type(self).__name__} to its own path.")
         else:
             if os.path.exists(path):
-                if self.if_exists == IfExists.Allow:
+                if self.if_exists == BasePath.IfExists.Allow:
                     pass
-                elif self.if_exists == IfExists.MakeCopy:
+                elif self.if_exists == BasePath.IfExists.MakeCopy:
                     raise NotImplementedError
-                elif self.if_exists == IfExists.Fail:
+                elif self.if_exists == BasePath.IfExists.Fail:
                     raise PermissionError(f"Path '{path}' already exists and current setting is '{self.if_exists}'. To change the behaviour set the '{type(self).__name__}.if_exists' attribute to one of: {BasePath.IfExists}.")
 
     @classmethod

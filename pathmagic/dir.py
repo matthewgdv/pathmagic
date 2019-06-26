@@ -355,12 +355,12 @@ class Dir(BasePath):
     def _synchronize_files(self) -> None:
         realfiles = [item.name for item in os.scandir(self.path) if item.is_file()]
         self._files = {name: self._files.get(name) for name in realfiles}
-        self.f._acquire(list(self._files))
+        self.f._acquire(realfiles)
 
     def _synchronize_dirs(self) -> None:
         realdirs = [item.name for item in os.scandir(self.path) if item.is_dir()]
         self._dirs = {name: self._dirs.get(name) for name in realdirs}
-        self.d._acquire(list(self._dirs))
+        self.d._acquire(realdirs)
 
     def _access_files(self, name: str) -> File:
         if name not in self._files:
