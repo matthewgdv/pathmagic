@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from abc import ABC
 from typing import Any, Callable, Dict, List, Union, TYPE_CHECKING
-from types import MethodType
 
 from subtypes import Str
 
@@ -85,24 +84,27 @@ class DotAccessor:
         self._pending: List[str] = []
 
     def __getattribute__(self, name: str) -> Any:
-        val = super().__getattribute__(name)
-        if name in ["_accessor", "_mappings", "_pending"] or isinstance(val, MethodType):
-            return val
+        val = object.__getattribute__(self, name)
+        if isinstance(val, str):
+            return object.__getattribute__(self, "_accessor")[val]
         else:
-            return self._accessor[val]
+            return val
 
     def __getattr__(self, attr: str) -> Any:
-        if attr not in self._mappings:
-            self.__acquire_references_as_attributes()
+        names = self._mappings.get(attr)
+        if names is None:
+            self._accessor._sync()
+            if self._accessor.parent.lazy:
+                self.__acquire_references_as_attributes()
+            names = self._mappings.get(attr)
 
-        if attr in self._mappings:
-            names = self._mappings[attr]
+        if names is None:
+            return self._accessor[attr]
+        else:
             if len(names) > 1:
                 raise AmbiguityError(f"""'{attr}' does not resolve uniquely. Could refer to any of: {", ".join([f"'{name}'" for name in names])}.""")
             else:
                 return self._accessor[names[0]]
-        else:
-            return self._accessor[attr]
 
     def _acquire(self, names: List[str]) -> None:
         self._pending = names
