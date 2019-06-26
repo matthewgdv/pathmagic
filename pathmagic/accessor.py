@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 from abc import ABC
-from typing import Any, Callable, Dict, List, Union, Type, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Union, TYPE_CHECKING
+from types import MethodType
 
 from subtypes import Str
 
@@ -13,13 +14,10 @@ if TYPE_CHECKING:
     from .file import File
 
 
-# TODO: cause dotaccessors to update before accessing, to prevent them being unable to find things that are actually there
-
 class Accessor(ABC):
     """Utility class for managing item access to the underlying _files and _dirs attributes held by Dir objects."""
 
     collection_name: str
-    class_type: Union[Type[File], Type[Dir]]
 
     def __init__(self, parent: Dir) -> None:
         self.parent = parent
@@ -46,12 +44,6 @@ class Accessor(ABC):
     def __getitem__(self, key: str) -> Union[File, Dir]:
         return self._access(key)
 
-    def __setitem__(self, key: str, val: Any) -> None:
-        if isinstance(val, self.class_type):
-            val.newcopy(os.path.join(self.parent.path, key)).dir = self.parent
-        else:
-            raise TypeError(f"Item to be set must be type {self.class_type.__name__}, not {type(val).__name__}")
-
     def __delitem__(self, key: str) -> None:
         self[key].delete()
 
@@ -61,7 +53,6 @@ class FileAccessor(Accessor):
 
     def __init__(self, parent: Dir):
         super().__init__(parent=parent)
-        self._set_class_type()
         self._sync, self._access = self.parent._synchronize_files, self.parent._access_files
 
     def __getitem__(self, key: str) -> File:
@@ -69,10 +60,6 @@ class FileAccessor(Accessor):
 
     def __setitem__(self, key: str, val: File) -> None:
         super().__setitem__(key, val)
-
-    def _set_class_type(self) -> None:
-        from .file import File
-        self.class_type = File
 
 
 class DirAccessor(Accessor):
@@ -88,62 +75,49 @@ class DirAccessor(Accessor):
     def __setitem__(self, key: str, val: Dir) -> None:
         super().__setitem__(key, val)
 
-    def _set_class_type(self) -> None:
-        from .dir import Dir
-        self.class_type = Dir
-
 
 class DotAccessor:
     _strip_extension: bool = None
 
     def __init__(self, accessor: Accessor) -> None:
-        self.__accessor, self.__ready = accessor, False
-        self.__mappings: Dict[str, List[str]] = None
-        self.__pending: List[str] = None
+        self._accessor = accessor
+        self._mappings: Dict[str, List[str]] = {}
+        self._pending: List[str] = []
 
     def __getattribute__(self, name: str) -> Any:
-        if name.startswith("_"):
-            return super().__getattribute__(name)
+        val = super().__getattribute__(name)
+        if name in ["_accessor", "_mappings", "_pending"] or isinstance(val, MethodType):
+            return val
         else:
-            return self.__accessor[super().__getattribute__(name)]
+            return self._accessor[val]
 
     def __getattr__(self, attr: str) -> Any:
-        if attr.startswith("_"):
-            raise AttributeError(attr)
+        if attr not in self._mappings:
+            self.__acquire_references_as_attributes()
 
-        if not self.__ready:
-            self.__prepare()
-
-        if attr in self.__mappings:
-            names = self.__mappings[attr]
+        if attr in self._mappings:
+            names = self._mappings[attr]
             if len(names) > 1:
                 raise AmbiguityError(f"""'{attr}' does not resolve uniquely. Could refer to any of: {", ".join([f"'{name}'" for name in names])}.""")
             else:
-                return self.__accessor[names[0]]
+                return self._accessor[names[0]]
         else:
-            return self.__accessor[attr]
+            return self._accessor[attr]
 
     def _acquire(self, names: List[str]) -> None:
-        self.__pending, self.__ready = names, False
-
-        if not self.__accessor.parent.lazy:
+        self._pending = names
+        if not self._accessor.parent.lazy:
             self.__acquire_references_as_attributes()
-            self.__ready = True
-
-    def __prepare(self) -> None:
-        if self.__accessor.parent.lazy:
-            self.__set_mappings_from_pending()
-            self.__ready = True
-
-    def __set_mappings_from_pending(self) -> None:
-        self.__mappings = {}
-        for name in self.__pending:
-            clean = str((Str(name).before_first(r"\.") if self._strip_extension else Str(name)).identifier())
-            self.__mappings.setdefault(clean, []).append(name)
 
     def __acquire_references_as_attributes(self) -> None:
-        self.__set_mappings_from_pending()
-        for clean, names in self.__mappings.items():
+        self._mappings.clear()
+        for name in self._pending:
+            clean = str((Str(name).before_first(r"\.") if type(self)._strip_extension else Str(name)).identifier())
+            self._mappings.setdefault(clean, []).append(name)
+
+        self._pending.clear()
+
+        for clean, names in self._mappings.items():
             if len(names) == 1:
                 setattr(self, clean, names[0])
 
