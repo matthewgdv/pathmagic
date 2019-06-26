@@ -78,6 +78,10 @@ class DirAccessor(Accessor):
 class DotAccessor:
     _strip_extension: bool = None
 
+    class Name:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
     def __init__(self, accessor: Accessor) -> None:
         self._accessor = accessor
         self._mappings: Dict[str, List[str]] = {}
@@ -85,8 +89,8 @@ class DotAccessor:
 
     def __getattribute__(self, name: str) -> Any:
         val = object.__getattribute__(self, name)
-        if isinstance(val, str):
-            return object.__getattribute__(self, "_accessor")[val]
+        if isinstance(val, DotAccessor.Name):
+            return object.__getattribute__(self, "_accessor")[val.name]
         else:
             return val
 
@@ -121,7 +125,7 @@ class DotAccessor:
 
         for clean, names in self._mappings.items():
             if len(names) == 1:
-                setattr(self, clean, names[0])
+                setattr(self, clean, DotAccessor.Name(name=names[0]))
 
 
 class FileDotAccessor(DotAccessor):
