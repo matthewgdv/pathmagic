@@ -94,21 +94,22 @@ class DotAccessor:
         else:
             return val
 
-    def __getattr__(self, attr: str) -> Any:
-        names = self._mappings.get(attr)
-        if names is None:
-            self._accessor._sync()
-            if self._accessor.parent.lazy:
-                self.__acquire_references_as_attributes()
-            names = self._mappings.get(attr)
+    def __getattr__(self, name: str) -> Any:
+        if not name.startswith("__"):
+            names = self._mappings.get(name)
+            if names is None:
+                self._accessor._sync()
+                if self._accessor.parent.lazy:
+                    self.__acquire_references_as_attributes()
+                names = self._mappings.get(name)
 
-        if names is None:
-            return self._accessor[attr]
-        else:
-            if len(names) > 1:
-                raise AmbiguityError(f"""'{attr}' does not resolve uniquely. Could refer to any of: {", ".join([f"'{name}'" for name in names])}.""")
+            if names is None:
+                return self._accessor[name]
             else:
-                return self._accessor[names[0]]
+                if len(names) > 1:
+                    raise AmbiguityError(f"""'{name}' does not resolve uniquely. Could refer to any of: {", ".join([f"'{fullname}'" for fullname in names])}.""")
+                else:
+                    return self._accessor[names[0]]
 
     def _acquire(self, names: List[str]) -> None:
         self._pending = names
