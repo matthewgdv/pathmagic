@@ -8,12 +8,13 @@ import shutil
 import subprocess
 import zipfile
 from datetime import datetime as dt
-from typing import Any, Collection, Dict, Iterator, List, Optional, Tuple, Type, Union, cast
+from typing import Any, Collection, Dict, Iterator, List, Optional, Tuple, Union, cast
 
 from maybe import Maybe
+from subtypes import Str
 
 from .accessor import FileAccessor, DirAccessor, FileDotAccessor, DirDotAccessor
-from .basepath import BasePath, PathLike, is_running_in_ipython
+from .basepath import BasePath, PathLike, Settings
 from .file import File
 
 
@@ -31,12 +32,12 @@ class Dir(BasePath):
     are listed in this class' 'IfExists' enumeration.
     """
 
-    def __init__(self, path: PathLike = "", if_exists: str = BasePath.DEFAULT_IF_EXISTS, lazy_instanciation: bool = None, fileclass: Type[File] = None, dirclass: Type[Dir] = None) -> None:
+    def __init__(self, path: PathLike = "", settings: Settings = None) -> None:
         self._path = self._name = None  # type: str
-        self.if_exists, path = if_exists, os.path.realpath(path)
-        self.lazy = Maybe(lazy_instanciation).else_(False if is_running_in_ipython() else True)
-        self.fileclass, self.dirclass = Maybe(fileclass).else_(File), Maybe(dirclass).else_(type(self))
         self._dir: Dir = None
+
+        self.settings = Maybe(settings).else_(Settings())
+        path = os.path.realpath(path)
 
         self._prepare_dir_if_not_exists(path)
         self._set_params(path, move=False)
@@ -87,12 +88,12 @@ class Dir(BasePath):
     def dir(self) -> Dir:
         """Return or set the Dir's directory as a Dir object. Implicitly calls that Dir object's '_bind' method."""
         if self._dir is None:
-            self._dir = self.dirclass(os.path.dirname(self.path), fileclass=self.fileclass, if_exists=self.if_exists)
+            self._dir = self.settings.dirclass(os.path.dirname(self.path), settings=self.settings)
         return self._dir
 
     @dir.setter
     def dir(self, val: Dir) -> None:
-        val._bind(self, preserve_original=False)
+        self.dirclass(val)._bind(self, preserve_original=False)
 
     @property
     def name(self) -> str:
@@ -144,7 +145,7 @@ class Dir(BasePath):
     def newcopy(self, path: PathLike) -> Dir:
         """Create a new copy of this Dir at the specified path. Returns the copy."""
         self.copy(path)
-        return type(self)(path, if_exists=self.if_exists, fileclass=self.fileclass)
+        return self.settings.dirclass(path, settings=self.settings)
 
     def copy(self, path: PathLike) -> Dir:
         """Create a new copy of this Dir at the specified path. Returns self."""
@@ -157,13 +158,13 @@ class Dir(BasePath):
 
     def newcopyto(self, directory: PathLike) -> Dir:
         """Create a new copy of this Dir within the specified path. If passed an existing Dir, both objects will implicitly call acquire references to each other. Otherwise it will instantiate a new Dir first. Returns the copy."""
-        parent = self.dirclass.from_pathlike(directory, if_exists=self.if_exists, fileclass=self.fileclass)
+        parent = self.dirclass.from_pathlike(directory, settings=self.settings)
         parent._bind(self, validate=True)
         return parent.dirs[self.name]
 
     def copyto(self, directory: PathLike) -> Dir:
         """Create a new copy of this Dir within the specified path. If passed an existing Dir, both objects will implicitly call acquire references to each other. Otherwise it will instantiate a new Dir first. Returns self."""
-        self.dirclass.from_pathlike(directory, if_exists=self.if_exists, fileclass=self.fileclass)._bind(self, validate=True)
+        self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, validate=True)
         return self
 
     def move(self, path: PathLike) -> Dir:
@@ -175,12 +176,13 @@ class Dir(BasePath):
 
     def moveto(self, directory: PathLike) -> Dir:
         """Move this Dir to the specified Dir object. If passed an existing Dir, both objects will implicitly call acquire references to each other. Returns self."""
-        self.dirclass.from_pathlike(directory, if_exists=self.if_exists, fileclass=self.fileclass)._bind(self, preserve_original=False, validate=True)
+        self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False, validate=True)
         return self
 
-    def delete(self) -> None:
+    def delete(self) -> Dir:
         """Delete this Dir object's mapped directory from the file system. The Dir object will persist and may still be used."""
         shutil.rmtree(self._path)
+        return self
 
     def clear(self) -> Dir:
         """Delete all files and directories contained within this Dir."""
@@ -197,7 +199,7 @@ class Dir(BasePath):
     def newfile(self, name: str, extension: str = None) -> File:
         """Instantiate a new File with the specified name within this Dir. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns that File."""
         name = f"{name}{('.' + Maybe(extension)).else_('')}"
-        self._bind(self.fileclass(os.path.join(self.path, name)))
+        self._bind(self.settings.fileclass(os.path.join(self.path, name), settings=self.settings))
         return self._files[name]
 
     def makedir(self, name: str) -> Dir:
@@ -208,12 +210,17 @@ class Dir(BasePath):
 
     def newdir(self, name: str) -> Dir:
         """Instantiate a new Dir with the specified name within this Dir. Returns that Dir."""
-        self._bind(self.dirclass(os.path.join(self.path, name), if_exists=self.if_exists, lazy_instanciation=self.lazy, fileclass=self.fileclass, dirclass=self.dirclass))
+        self._bind(self.settings.dirclass(os.path.join(self.path, name), settings=self.settings))
         return self._dirs[name]
 
+    def joinfile(self, path: PathLike) -> File:
+        return self.settings.fileclass(pathlib.Path(self).joinpath(path), settings=self.settings)
+
+    def joindir(self, path: PathLike) -> Dir:
+        return self.settings.dirclass(pathlib.Path(self).joinpath(path), settings=self.settings)
+
     def symlink_to(self, target: PathLike, name: str = None, target_is_directory: bool = True) -> None:
-        link = (self.newdir if target_is_directory else self.newfile)(Maybe(name).else_(os.path.basename(target)))
-        link.delete()
+        link = (self.newdir if target_is_directory else self.newfile)(Maybe(name).else_(os.path.basename(target))).delete()
         pathlib.Path(link).symlink_to(target=target, target_is_directory=target_is_directory)
 
     def seekfiles(self, depth: int = None, name: str = None, dirpath: str = None, contents: str = None, extensions: Collection[str] = None, re_flags: int = 0) -> Iterator[File]:
@@ -227,9 +234,9 @@ class Dir(BasePath):
         for file in self.files:
             if (
                 (extensions is None or file.extension in extensions)
-                and (name is None or re.search(name, file.prename, flags=re_flags))
-                and (dirpath is None or re.search(dirpath, self.path, flags=re_flags))
-                and (contents is None or (len(file) > 0 and re.search(contents, file.contents, flags=re_flags)))
+                and (name is None or Str(file.prename).search(name, flags=re_flags))
+                and (dirpath is None or Str(self.path).search(dirpath, flags=re_flags))
+                and (contents is None or (len(file) > 0 and Str(file.contents).search(contents, flags=re_flags)))
             ):
                 yield file
 
@@ -251,10 +258,10 @@ class Dir(BasePath):
 
         for directory in self.dirs:
             if (
-                (name is None or re.search(name, directory.name, flags=re_flags))
-                and (dirpath is None or re.search(dirpath, self.path, flags=re_flags))
-                and (contains_filename is None or any([re.search(contains_filename, file.name, flags=re_flags) is not None for file in directory.files]))
-                and (contains_dirname is None or any([re.search(contains_dirname, subdir.name, flags=re_flags) is not None for subdir in directory.dirs]))
+                (name is None or Str(directory.name).search(name, flags=re_flags))
+                and (dirpath is None or Str(self.path).search(dirpath, flags=re_flags))
+                and (contains_filename is None or any([Str(file.name).search(contains_filename, flags=re_flags) is not None for file in directory.files]))
+                and (contains_dirname is None or any([Str(subdir.name).search(contains_dirname, flags=re_flags) is not None for subdir in directory.dirs]))
             ):
                 yield directory
 
@@ -318,17 +325,12 @@ class Dir(BasePath):
             return ascii_tree
 
     @classmethod
-    def from_home(cls: Type[Dir], **kwargs: Any) -> Dir:
-        return cls(pathlib.Path.home(), **kwargs)
+    def from_home(cls, settings: Settings = None) -> Dir:
+        return cls(pathlib.Path.home(), settings=settings)
 
     @classmethod
-    def from_desktop(cls, **kwargs: Any) -> Dir:
-        home = cls.from_home()
-        if "Desktop.lnk" in home.files:
-            path_object = home.files["Desktop.lnk"].contents
-            return home.dirclass(path_object, **kwargs)
-        else:
-            return cls.from_home(**kwargs).dirs["Desktop"]
+    def from_desktop(cls, settings: Settings = None) -> Dir:
+        return cls.from_home(settings=settings).d.desktop
 
     def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True, validate: bool = False) -> None:
         """
@@ -345,9 +347,12 @@ class Dir(BasePath):
         unbound._dir = self
 
         mro = inspect.getmro(type(unbound))
-        if File in mro and isinstance(unbound, File):
+
+        if File in mro and Dir in mro:
+            raise TypeError(f"Objects to bind must be {File.__name__} or {Dir.__name__} (or some subclass), but may not inherit from both.")
+        elif File in mro:
             self._files[unbound.name] = unbound
-        elif Dir in mro and isinstance(unbound, Dir):
+        elif Dir in mro:
             self._dirs[unbound.name] = unbound
         else:
             raise TypeError(f"Objects to bind must be {File.__name__} or {Dir.__name__} (or some subclass), not {type(existing_object).__name__}")
@@ -379,9 +384,8 @@ class Dir(BasePath):
             raise FileNotFoundError(f"Dir '{name}' not found in '{self}'")
 
     def _set_params(self, path: str, move: bool = True) -> None:
-        name = os.path.basename(path)
-        new_dirpath = os.path.dirname(path)
-        directory = None if self._dir is None else (self.dirclass(new_dirpath, fileclass=self.fileclass, if_exists=self.if_exists) if self.dir.path != new_dirpath else self.dir)
+        name, new_dirpath = os.path.basename(path), os.path.dirname(path)
+        directory = None if self._dir is None else (self.settings.dirclass(new_dirpath, settings=self.settings) if self.dir.path != new_dirpath else self.dir)
 
         if move:
             shutil.move(self.path, path)

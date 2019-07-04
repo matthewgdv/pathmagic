@@ -99,7 +99,7 @@ class DotAccessor:
             names = self._mappings.get(name)
             if names is None:
                 self._accessor._sync()
-                if self._accessor.parent.lazy:
+                if self._accessor.parent.settings.lazy:
                     self.__acquire_references_as_attributes()
                 names = self._mappings.get(name)
 
@@ -113,7 +113,7 @@ class DotAccessor:
 
     def _acquire(self, names: List[str]) -> None:
         self._pending = names
-        if not self._accessor.parent.lazy:
+        if not self._accessor.parent.settings.lazy:
             self.__acquire_references_as_attributes()
 
     def __acquire_references_as_attributes(self) -> None:

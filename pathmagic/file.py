@@ -7,12 +7,12 @@ import sys
 import tarfile
 import zipfile
 from datetime import datetime as dt
-from typing import Any, Type, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from maybe import Maybe
 from subtypes import Str
 
-from .basepath import BasePath, PathLike
+from .basepath import BasePath, PathLike, Settings
 from .formats import FormatHandler
 
 if TYPE_CHECKING:
@@ -31,13 +31,13 @@ class File(BasePath):
     The options are listed in this class' 'IfExists' enumeration.
     """
 
-    def __init__(self, path: PathLike, if_exists: str = BasePath.DEFAULT_IF_EXISTS, dirclass: Type[Dir] = None) -> None:
+    def __init__(self, path: PathLike, settings: Settings = None) -> None:
         self._path = self._name = self._prename = self._extension = None  # type: str
         self._contents: Any = None
-        path, self.if_exists, self._format = os.path.realpath(path), if_exists, FormatHandler(self)
-
         self._dir: Dir = None
-        self._set_dir_constructor(dirclass)
+
+        path, self._format = os.path.realpath(path), FormatHandler(self)
+        self.settings = Maybe(settings).else_(Settings())
 
         self._prepare_file_if_not_exists(path)
         self._set_params(path)
@@ -47,9 +47,9 @@ class File(BasePath):
 
     def __len__(self) -> int:
         if self.extension not in self._format.formats and not zipfile.is_zipfile(self.path) and not tarfile.is_tarfile(self.path):
-            self._synchronize()
+            self.read()
 
-        return 0 if not isinstance(self._contents, str) else self.contents.count("\n") + 1
+        return 0 if not isinstance(self._contents, str) else self._contents.count("\n") + 1
 
     def __bool__(self) -> bool:
         return True if os.path.getsize(self) > 0 else False
@@ -86,15 +86,13 @@ class File(BasePath):
     @property
     def dir(self) -> Dir:
         """Return or set the File's directory as a Dir object. Implicitly calls that Dir object's 'bind' method."""
-        from .dir import Dir
-
         if self._dir is None:
-            self._dir = Dir(os.path.dirname(self.path))
+            self._dir = self.settings.dirclass(os.path.dirname(self.path), settings=self.settings)
         return self._dir
 
     @dir.setter
     def dir(self, val: Dir) -> None:
-        val._bind(self, preserve_original=False)
+        self.settings.dirclass.from_pathlike(val, settings=self.settings)._bind(self, preserve_original=False)
 
     @property
     def name(self) -> str:
@@ -150,9 +148,9 @@ class File(BasePath):
     def read(self, **kwargs: Any) -> str:
         """
         Return the File's contents as a string if it is not encoded, else attempt to return a useful Python object representing the file contents (e.g. Pandas DataFrame for tabular files, etc.).
-        If provided, *args and **kwargs will be passed on to whichever function will be used to read in the File's contents. Call the 'readhelp' method for that function's documentation.
+        If provided, **kwargs will be passed on to whichever function will be used to read in the File's contents. Call the 'readhelp' method for that function's documentation.
         """
-        self._synchronize(**kwargs)
+        self._contents = self._format.read(**kwargs)
         return self._contents
 
     def readhelp(self) -> None:
@@ -205,7 +203,7 @@ class File(BasePath):
     def newcopy(self, path: str) -> File:
         """Create a new copy of this File at the specified path. Returns the new File."""
         self.copy(path)
-        return type(self)(path)
+        return type(self)(path, settings=self.settings)
 
     def copy(self, path: str) -> File:
         """Create a new copy of this File at the specified path. Returns self."""
@@ -241,11 +239,12 @@ class File(BasePath):
         directory._bind(self, preserve_original=False)
         return self
 
-    def delete(self, backup: bool = False) -> None:
+    def delete(self, backup: bool = False) -> File:
         """Delete this File's object's mapped file from the file system. The File object will persist and may still be used."""
         if backup:
             self._synchronize()
         os.remove(self.path)
+        return self
 
     def recover(self) -> File:
         """Attempt to reconstruct the file represented by this File object from its attributes after it has been deleted from the file system."""
@@ -255,21 +254,11 @@ class File(BasePath):
 
     @classmethod
     def from_main(cls, *args: Any, **kwargs: Any) -> File:
-        return cls(sys.modules['__main__'].__file__, *args, **kwargs)
-
-    def _synchronize(self, **kwargs: Any) -> None:
-        self._contents = self._format.read(**kwargs)
-
-    def _set_dir_constructor(self, dirclass: Type[Dir]) -> None:
-        from .dir import Dir
-        self.dirclass = Maybe(dirclass).else_(Dir)
+        return cls(sys.modules["__main__"].__file__, *args, **kwargs)
 
     def _set_params(self, path: str, move: bool = False) -> None:
-        from .dir import Dir
-
-        name = os.path.basename(path)
-        new_dirpath = os.path.dirname(path)
-        directory = None if self._dir is None else (Dir(new_dirpath) if self.dir.path != new_dirpath else self.dir)
+        name, new_dirpath = os.path.basename(path), os.path.dirname(path)
+        directory = None if self._dir is None else (self.settings.dirclass(new_dirpath, settings=self.settings) if self.dir.path != new_dirpath else self.dir)
 
         if move:
             shutil.move(self.path, path)

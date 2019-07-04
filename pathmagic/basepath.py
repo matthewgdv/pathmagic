@@ -4,10 +4,15 @@ import contextlib
 import inspect
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Iterator, Union
+from typing import Any, Iterator, Union, Type, TYPE_CHECKING
 import pathlib
 
+from maybe import Maybe
 from subtypes import Enum
+
+if TYPE_CHECKING:
+    from .file import File
+    from .dir import Dir
 
 PathLike = Union[str, os.PathLike]
 
@@ -20,13 +25,29 @@ def is_running_in_ipython() -> bool:
         return False
 
 
+class IfExists(Enum):
+    FAIL, ALLOW, MAKE_COPY = "fail", "allow", "make_copy"
+
+
+class Settings:
+    def __init__(self, if_exists: str = None, lazy_instanciation: bool = None, fileclass: Type[File] = None, dirclass: Type[Dir] = None) -> None:
+        from .file import File
+        from .dir import Dir
+
+        self.if_exists = Maybe(if_exists).else_(BasePath.DEFAULT_IF_EXISTS)
+        self.lazy = Maybe(lazy_instanciation).else_(False if is_running_in_ipython() else True)
+        self.fileclass, self.dirclass = Maybe(fileclass).else_(File), Maybe(dirclass).else_(Dir)
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
+
+
 class BasePath(os.PathLike, ABC):
     """Abstract Base Class from which 'File' and 'Dir' objects derive."""
 
-    class IfExists(Enum):
-        Fail, Allow, MakeCopy = "fail", "allow", "make_copy"
+    IfExists = IfExists
+    DEFAULT_IF_EXISTS = IfExists.FAIL
 
-    DEFAULT_IF_EXISTS = IfExists.Fail
     if_exists: bool
     _path: str
 
@@ -52,17 +73,16 @@ class BasePath(os.PathLike, ABC):
             raise FileExistsError(f"Path '{path}' is already this {type(self).__name__}'s path. Cannot copy or move a {type(self).__name__} to its own path.")
         else:
             if os.path.exists(path):
-                if self.if_exists == BasePath.IfExists.Allow:
+                if self.settings.if_exists == BasePath.IfExists.Allow:
                     pass
-                elif self.if_exists == BasePath.IfExists.MakeCopy:
+                elif self.settings.if_exists == BasePath.IfExists.MakeCopy:
                     raise NotImplementedError
-                elif self.if_exists == BasePath.IfExists.Fail:
-                    raise PermissionError(f"Path '{path}' already exists and current setting is '{self.if_exists}'. To change the behaviour set the '{type(self).__name__}.if_exists' attribute to one of: {BasePath.IfExists}.")
+                elif self.settings.if_exists == BasePath.IfExists.Fail:
+                    raise PermissionError(f"Path '{path}' already exists and current setting is '{self.settings.if_exists}'. To change the behaviour set the '{type(self).__name__}.settings.if_exists' attribute to one of: {BasePath.IfExists}.")
 
     @classmethod
-    def from_pathlike(cls, pathlike: PathLike, **kwargs: Any) -> BasePath:
-        mro = inspect.getmro(type(pathlike))
-        return pathlike if cls in mro else cls(path=pathlike, **kwargs)
+    def from_pathlike(cls, pathlike: PathLike, settings: Settings = None) -> BasePath:
+        return pathlike if cls in inspect.getmro(type(pathlike)) else cls(path=pathlike, settings=settings)
 
     @staticmethod
     def chdir(path: PathLike) -> None:

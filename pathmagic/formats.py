@@ -350,7 +350,7 @@ class MarkUp(Format):
 
 
 class Default(Format):
-    formats: Set[str] = {"txt"}
+    formats: Set[str] = set()
     readfuncs = writefuncs = defaultdict(lambda: io.TextIOWrapper)  # type: ignore
 
     def __init__(self, file: File) -> None:
