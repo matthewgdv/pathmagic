@@ -9,6 +9,7 @@ import subprocess
 import zipfile
 from datetime import datetime as dt
 from typing import Any, Collection, Dict, Iterator, List, Optional, Tuple, Union, cast
+from types import ModuleType
 
 from maybe import Maybe
 from subtypes import Str
@@ -331,6 +332,11 @@ class Dir(BasePath):
     @classmethod
     def from_desktop(cls, settings: Settings = None) -> Dir:
         return cls.from_home(settings=settings).d.desktop
+
+    @classmethod
+    def from_package(cls, package: ModuleType, settings: Settings = None) -> Dir:
+        loc, = package.__spec__.submodule_search_locations
+        return cls(loc, settings=settings)
 
     def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True, validate: bool = False) -> None:
         """

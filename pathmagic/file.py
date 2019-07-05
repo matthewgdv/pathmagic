@@ -8,6 +8,7 @@ import tarfile
 import zipfile
 from datetime import datetime as dt
 from typing import Any, TYPE_CHECKING
+from types import ModuleType
 
 from maybe import Maybe
 from subtypes import Str
@@ -253,8 +254,13 @@ class File(BasePath):
         return self
 
     @classmethod
-    def from_main(cls, *args: Any, **kwargs: Any) -> File:
-        return cls(sys.modules["__main__"].__file__, *args, **kwargs)
+    def from_main(cls, settings: Settings = None) -> File:
+        return cls(sys.modules["__main__"].__file__, settings=settings)
+
+    @classmethod
+    def from_resource(cls, package: ModuleType, name: str, extension: str = None, settings: Settings = None) -> File:
+        from .dir import Dir
+        return Dir.from_package(package, settings=settings).newfile(name=name, extension=extension)
 
     def _set_params(self, path: str, move: bool = False) -> None:
         name, new_dirpath = os.path.basename(path), os.path.dirname(path)
