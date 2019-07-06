@@ -199,10 +199,12 @@ class Dir(BasePath):
         return self._dirs[name]
 
     def joinfile(self, path: PathLike) -> File:
-        return self.settings.fileclass(self.path.joinpath(path), settings=self.settings)
+        clean = os.fspath(path).strip("\\").strip("/")
+        return self.settings.fileclass(self.path.joinpath(clean), settings=self.settings)
 
     def joindir(self, path: PathLike) -> Dir:
-        return self.settings.dirclass(self.path.joinpath(path), settings=self.settings)
+        clean = os.fspath(path).strip("\\").strip("/")
+        return self.settings.dirclass(self.path.joinpath(clean), settings=self.settings)
 
     def symlink_to(self, target: PathLike, name: str = None, target_is_directory: bool = True) -> None:
         link = (self.newdir if target_is_directory else self.newfile)(Maybe(name).else_(os.path.basename(target))).delete()
