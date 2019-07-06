@@ -32,7 +32,8 @@ class File(BasePath):
     """
 
     def __init__(self, path: PathLike, settings: Settings = None) -> None:
-        self._path = self._name = self._prename = self._extension = None  # type: str
+        self._name = self._prename = self._extension = None  # type: str
+        self._path: pathlib.Path = None
         self._contents: Any = None
         self._dir: Dir = None
 
@@ -75,12 +76,12 @@ class File(BasePath):
         self.write("\n".join(aslist))
 
     @property
-    def path(self) -> str:
+    def path(self) -> pathlib.Path:
         """Return or set the File's full path as a string. Implicitly calls the 'move' method."""
         return self._path
 
     @path.setter
-    def path(self, val: str) -> None:
+    def path(self, val: PathLike) -> None:
         self.move(val)
 
     @property
@@ -248,7 +249,7 @@ class File(BasePath):
         from .dir import Dir
         return Dir.from_package(package, settings=settings).newfile(name=name, extension=extension)
 
-    def _set_params(self, path: str, move: bool = True) -> None:
+    def _set_params(self, path: PathLike, move: bool = True) -> None:
         path_obj = pathlib.Path(os.path.abspath(path))
 
         name, new_dirpath = os.path.basename(path_obj), os.path.dirname(path_obj)

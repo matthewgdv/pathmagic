@@ -32,7 +32,8 @@ class Dir(BasePath):
     """
 
     def __init__(self, path: PathLike = "", settings: Settings = None) -> None:
-        self._path = self._name = None  # type: str
+        self._name: str = None
+        self._path: pathlib.Path = None
         self._dir: Dir = None
         self._files: Dict[str, Optional[File]] = {}
         self._dirs: Dict[str, Optional[Dir]] = {}
@@ -76,12 +77,12 @@ class Dir(BasePath):
         return next(self.__iter)
 
     @property
-    def path(self) -> str:
+    def path(self) -> pathlib.Path:
         """Return or set the Dir's full path as a string. Implicitly calls the 'move' method."""
         return self._path
 
     @path.setter
-    def path(self, val: str) -> None:
+    def path(self, val: PathLike) -> None:
         self.move(val)
 
     @property
@@ -122,9 +123,7 @@ class Dir(BasePath):
 
     def rename(self, name: str) -> Dir:
         """Rename this Dir to the specified value. Returns self."""
-        newpath = self.dir.path.joinpath(name)
-        os.rename(self, newpath)
-        self._name, self._path = name, newpath
+        self._set_params(self.dir.path.joinpath(name))
         return self
 
     def newrename(self, name: str) -> Dir:
