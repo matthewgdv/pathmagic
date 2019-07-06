@@ -6,12 +6,11 @@ import subprocess
 import sys
 import tarfile
 import zipfile
-from datetime import datetime as dt
 from typing import Any, TYPE_CHECKING
 from types import ModuleType
+import pathlib
 
 from maybe import Maybe
-from subtypes import Str
 
 from .basepath import BasePath, PathLike, Settings
 from .formats import FormatHandler
@@ -37,11 +36,11 @@ class File(BasePath):
         self._contents: Any = None
         self._dir: Dir = None
 
-        path, self._format = os.path.realpath(path), FormatHandler(self)
+        self._format = FormatHandler(self)
         self.settings = Maybe(settings).else_(Settings())
 
         self._prepare_file_if_not_exists(path)
-        self._set_params(path)
+        self._set_params(path, move=False)
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(path={repr(self.path)}, lines={len(self) or '?'})"
@@ -88,7 +87,7 @@ class File(BasePath):
     def dir(self) -> Dir:
         """Return or set the File's directory as a Dir object. Implicitly calls that Dir object's 'bind' method."""
         if self._dir is None:
-            self._dir = self.settings.dirclass(os.path.dirname(self.path), settings=self.settings)
+            self._dir = self.settings.dirclass(os.path.dirname(self), settings=self.settings)
         return self._dir
 
     @dir.setter
@@ -136,16 +135,6 @@ class File(BasePath):
     def contents(self, val: Any) -> None:
         self.write(val)
 
-    @property
-    def created(self) -> dt:
-        """Return the File's created_time. Read-only."""
-        return dt.fromtimestamp(os.path.getctime(self.path))
-
-    @property
-    def modified(self) -> dt:
-        """Return the File's last_modified_time. Read-only."""
-        return dt.fromtimestamp(os.path.getmtime(self.path))
-
     def read(self, **kwargs: Any) -> str:
         """
         Return the File's contents as a string if it is not encoded, else attempt to return a useful Python object representing the file contents (e.g. Pandas DataFrame for tabular files, etc.).
@@ -181,9 +170,9 @@ class File(BasePath):
     def open(self, app: str = None) -> File:
         """Call the default application associated with this File's extension type on its own path. If an application is specified, open it with that instead. Returns self."""
         if app is None:
-            os.startfile(self.path, "open")
+            os.startfile(self, "open")
         else:
-            with subprocess.Popen([app, self.path]):
+            with subprocess.Popen([app, str(self)]):
                 pass
         return self
 
@@ -194,28 +183,25 @@ class File(BasePath):
 
     def rename(self, name: str, extension: str = None) -> File:
         """Rename this File to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns self."""
-        self._set_name(f"{name}{('.' + Maybe(extension)).else_('')}")
+        self._set_params(self.dir.path.joinpath(f"{name}{('.' + Maybe(extension)).else_('')}"))
         return self
 
     def newrename(self, name: str, extension: str = None) -> File:
         """Rename a new copy of this File in-place to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns the copy."""
-        return self.newcopy(os.path.join(self.dir.path, f"{name}{('.' + Maybe(extension)).else_('')}"))
+        return self.newcopy(self.dir.path.joinpath(f"{name}{('.' + Maybe(extension)).else_('')}"))
 
     def newcopy(self, path: str) -> File:
         """Create a new copy of this File at the specified path. Returns the new File."""
-        self.copy(path)
-        return type(self)(path, settings=self.settings)
+        return type(self)(os.path.abspath(path), settings=self.settings)
 
     def copy(self, path: str) -> File:
         """Create a new copy of this File at the specified path. Returns self."""
-        path = os.path.realpath(path)
-
         try:
             self._validate(path)
         except FileExistsError:
             pass
         else:
-            shutil.copyfile(self.path, path)
+            shutil.copyfile(self, os.path.abspath(path))
 
         return self
 
@@ -232,7 +218,7 @@ class File(BasePath):
     def move(self, path: str) -> File:
         """Move this this File to the specified path. Returns self."""
         self._validate(path)
-        self._set_params(path, move=True)
+        self._set_params(path)
         return self
 
     def moveto(self, directory: Dir) -> File:
@@ -244,13 +230,13 @@ class File(BasePath):
         """Delete this File's object's mapped file from the file system. The File object will persist and may still be used."""
         if backup:
             self._synchronize()
-        os.remove(self.path)
+        os.remove(self)
         return self
 
     def recover(self) -> File:
         """Attempt to reconstruct the file represented by this File object from its attributes after it has been deleted from the file system."""
-        self._prepare_file_if_not_exists(self.path)
-        self.contents = self.contents
+        self._prepare_file_if_not_exists(self)
+        self.contents = self._contents
         return self
 
     @classmethod
@@ -262,26 +248,14 @@ class File(BasePath):
         from .dir import Dir
         return Dir.from_package(package, settings=settings).newfile(name=name, extension=extension)
 
-    def _set_params(self, path: str, move: bool = False) -> None:
-        name, new_dirpath = os.path.basename(path), os.path.dirname(path)
-        directory = None if self._dir is None else (self.settings.dirclass(new_dirpath, settings=self.settings) if self.dir.path != new_dirpath else self.dir)
+    def _set_params(self, path: str, move: bool = True) -> None:
+        path_obj = pathlib.Path(os.path.abspath(path))
+
+        name, new_dirpath = os.path.basename(path_obj), os.path.dirname(path_obj)
+        prename, extension = os.path.splitext(name)
+        directory = None if self._dir is None else (self.settings.dirclass(new_dirpath, settings=self.settings) if self.dir != new_dirpath else self.dir)
 
         if move:
-            shutil.move(self.path, path)
+            shutil.move(self, path_obj)
 
-        self._path, self._dir = path, directory
-        self._set_name(name, rename=False)
-
-    def _set_name(self, name: str, rename: bool = True) -> None:
-        if name.endswith("."):
-            raise ValueError(f"Filename '{name}' may not end with '.'")
-
-        prename = name if not name.count(".") else Str(name).before_last(r"\.")
-        extension = Str(name).after_last(r"\.").lower() if name.count(".") else None
-
-        if rename:
-            path = os.path.join(os.path.dirname(self.path), name)
-            os.rename(self._path, path)
-            self._path = path
-
-        self._name, self._prename, self._extension = name, prename, extension
+        self._path, self._dir, self._name, self._prename, self._extension = path_obj, directory, name, prename, extension.strip(".").lower()

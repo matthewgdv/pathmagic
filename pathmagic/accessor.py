@@ -16,18 +16,20 @@ if TYPE_CHECKING:
 class Accessor(ABC):
     """Utility class for managing item access to the underlying _files and _dirs attributes held by Dir objects."""
 
-    collection_name: str
-
     def __init__(self, parent: Dir) -> None:
         self.parent = parent
         self._access = self._sync = None  # type: Callable
+        self._collection: dict = None
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(num_items={len(self)}, items={list(self._collection)})"
 
     def __call__(self, full_path: bool = False) -> List[str]:
         self._sync()
-        return [filename if not full_path else os.path.join(self.parent.path, filename) for filename in getattr(self.parent, self.collection_name)]
+        return [filename if not full_path else os.path.join(self.parent.path, filename) for filename in self._collection]
 
     def __len__(self) -> int:
-        return len(getattr(self.parent, self.collection_name))
+        return len(self._collection)
 
     def __iter__(self) -> Any:
         self.__iter = (self[name] for name in self())
@@ -48,11 +50,9 @@ class Accessor(ABC):
 
 
 class FileAccessor(Accessor):
-    collection_name = "_files"
-
     def __init__(self, parent: Dir):
         super().__init__(parent=parent)
-        self._sync, self._access = self.parent._synchronize_files, self.parent._access_files
+        self._sync, self._access, self._collection = self.parent._synchronize_files, self.parent._access_files, self.parent._files
 
     def __getitem__(self, key: str) -> File:
         return self._access(key)
@@ -62,11 +62,9 @@ class FileAccessor(Accessor):
 
 
 class DirAccessor(Accessor):
-    collection_name = "_dirs"
-
     def __init__(self, parent: Dir):
         super().__init__(parent=parent)
-        self._sync, self._access = self.parent._synchronize_dirs, self.parent._access_dirs
+        self._sync, self._access, self._collection = self.parent._synchronize_dirs, self.parent._access_dirs, self.parent._dirs
 
     def __getitem__(self, key: str) -> Dir:
         return self._access(key)
