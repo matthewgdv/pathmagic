@@ -1,18 +1,18 @@
 Overview
 ====================
 
-Pathmagic implements two classes, File and Dir, to represent mapped file system obects
+Pathmagic implements two classes, `File` and `Dir`, to represent mapped file system obects
 in a manner similar to database ORMs like sqlalchemy. These objects have properties which
 perform file system operations when set, and implement many useful methods to abstract
 away nearly all file system I/O to a much higher degree than os.path or pathlib.
 
-Dir
+`Dir`
 --------------------
-* Properties that perform rename and move operations when set (path, dir, name)
-* Two accessor objects (Dir.files, Dir.dirs) which allow iteration over their respective
+* Properties that perform rename and move operations when set (`Dir.path`, `Dir.dir`, `Dir.name`)
+* Two accessor objects (`Dir.files`, `Dir.dirs`) which allow iteration over their respective
   collections, item access, membership tests, and more
-* Two specialized accessor objects (Dir.d, Dir.f), which dynamically populate themselves with
-  snake_cased attributes that represent the files/folders in their Dir, such that the filesystem
+* Two specialized accessor objects (`Dir.d`, `Dir.f`), which dynamically populate themselves with
+  snake_cased attributes that represent the files/folders in their `Dir`, such that the filesystem
   tree can be traversed purely through attribute access
 * Methods to create new files/dirs, copy/move self to another path/dir, delete self or contents,
   and join self to a relative path
@@ -25,12 +25,13 @@ Dir
 
 File
 --------------------
-* Properties that perform rename and move operations when set (path, dir, name, prename, extension)
+* Properties that perform rename and move operations when set (`File.path`, `File.dir`, `File.name`,
+  `File.prename`, `File.extension`)
 * Methods to copy/move self to another path/dir or delete self
 * Initialize from script entry point (in traditional interpreter), and from a package resource
-* File.read() and File.write() methods (and associated File.contents property) which invokes as
-  FormatHandler class, that determines how to read from/write to the file based on its extension.
-  FormatHandler uses the factory design pattern and can be extended at runtime to enable File to
+* `File.read()` and `File.write()` methods (and associated `File.contents` property) which invokes
+  the `FormatHandler` class to determine how to read from/write to the file based on its extension.
+  `FormatHandler` uses the factory design pattern and can be extended at runtime to enable File to
   handle types of files that are not supported by default.
 * By default, recognized formats are the following:
 
