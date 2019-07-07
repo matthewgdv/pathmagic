@@ -6,7 +6,7 @@ in a manner similar to database ORMs like sqlalchemy. These objects have propert
 perform file system operations when set, and implement many useful methods to abstract
 away nearly all file system I/O to a much higher degree than os.path or pathlib.
 
-`Dir`
+The `Dir` class
 --------------------
 * Properties that perform rename and move operations when set (`Dir.path`, `Dir.dir`, `Dir.name`)
 * Two accessor objects (`Dir.files`, `Dir.dirs`) which allow iteration over their respective
@@ -23,7 +23,7 @@ away nearly all file system I/O to a much higher degree than os.path or pathlib.
 * Visualize tree to arbitrary depth with an ascii representation
 * Initialize from homepath, desktop, or package
 
-`File`
+The `File` class
 --------------------
 * Properties that perform rename and move operations when set (`File.path`, `File.dir`, `File.name`,
   `File.prename`, `File.extension`)
