@@ -1,26 +1,69 @@
 Overview
 ====================
 
-[overview]
+Pathmagic implements two classes, File and Dir, to represent mapped file system obects
+in a manner similar to database ORMs like sqlalchemy. These objects have properties which
+perform file system operations when set, and implement many useful methods to abstract
+away nearly all file system I/O to a much higher degree than os.path or pathlib.
+
+Dir
+--------------------
+* Properties that perform rename and move operations when set (path, dir, name)
+* Two accessor objects (Dir.files, Dir.dirs) which allow iteration over their respective
+  collections, item access, membership tests, and more
+* Two specialized accessor objects (Dir.d, Dir.f), which dynamically populate themselves with
+  snake_cased attributes that represent the files/folders in their Dir, such that the filesystem
+  tree can be traversed purely through attribute access
+* Methods to create new files/dirs, copy/move self to another path/dir, delete self or contents,
+  and join self to a relative path
+* Recursively walk the tree downwards, comparing own tree to a parallel filesystem tree
+* Recursively seek files or dirs down the directory tree with inclusions/exclusions based on
+  valid extensions and regex patterns matching name, path, and (if a non-encoded file) contents.
+* Compress self into a zipfile
+* Visualize tree to arbitrary depth with an ascii representation
+* Initialize from homepath, desktop, or package
+
+File
+--------------------
+* Properties that perform rename and move operations when set (path, dir, name, prename, extension)
+* File.read() and File.write() methods (and associated File.contents property) which invokes as
+  FormatHandler class, that determines how to read from/write to the file based on its extension.
+  FormatHandler uses the factory design pattern and can be extended at runtime to enable File to
+  handle types of files that are not supported by default.
+* By default, recognized formats are the following, and will produce/accept the following objects:
+    * Pdf           (PyPDF2)                        [pdf]
+    * Tabular       (subtypes.Frame)                [xlsx, csv]
+    * Word          (docx.Document)                 [docx]
+    * Image         (PIL.Image)                     [png, jpf, jpeg]
+    * Audio         (pydub.AudioSegment)            [mp3, wav, ogg, flv]
+    * Video         (Moviepy.editor.edit)           [mp4, mkv, avi, gif]
+    * Compressed    (pathmagic.Dir)                 [zip, tar]
+    * Link          (pathlib.File or Pathlib.Dir)   [lnk]
+    * Serialized    (Any)                           [pkl]
+    * Json          (dict)                          [json]
+    * MarkUp        (subtypes.Markup)               [html, xml]
+    * Default       (str)                           everything else
+* Methods to copy/move self to another path/dir or delete self
+* Initialize from script entry point (in traditional interpreter), and from a package resource
 
 Installation
 ====================
 
 To install use pip:
 
-    $ pip install [project_name]
+    $ pip install pathmagic
 
 
 Or clone the repo:
 
-    $ git clone https://github.com/matthewgdv/[project_name].git
+    $ git clone https://github.com/matthewgdv/pathmagic.git
     $ python setup.py install
 
 
 Usage
 ====================
 
-[Usage]
+Detailed usage examples coming soon.
 
 Contributing
 ====================
@@ -33,7 +76,7 @@ You can contribute in many ways:
 Report Bugs
 --------------------
 
-Report bugs at https://github.com/matthewgdv/[project_name]/issues
+Report bugs at https://github.com/matthewgdv/pathmagic/issues
 
 If you are reporting a bug, please include:
 
@@ -62,7 +105,7 @@ official docs, in docstrings, or even on the web in blog posts, articles, and su
 Submit Feedback
 --------------------
 
-The best way to send feedback is to file an issue at https://github.com/matthewgdv/[project_name]/issues.
+The best way to send feedback is to file an issue at https://github.com/matthewgdv/pathmagic/issues.
 
 If you are proposing a new feature:
 
@@ -75,19 +118,25 @@ Get Started!
 
 Before you submit a pull request, check that it meets these guidelines:
 
-1.  The pull request should include tests.
+1.  If the pull request adds functionality, it should include tests and the docs
+    should be updated. Write docstrings for any functions that are part of the external API,
+    and add the feature to the README.md.
 
-2.  If the pull request adds functionality, the docs should be updated. Put
-    your new functionality into a function with a docstring, and add the
-    feature to the list in README.md.
+2.  If the pull request fixes a bug, tests should be added proving that the bug has been fixed.
+    However, no update to the docs is necessary for bugfixes.
 
-3.  The pull request should work for Python 3.7. Older versions are not supported.
+3.  The pull request should work for the newest version of Python (currently 3.7). Older
+    versions may incidentally work, but are not officially supported.
 
-4.  PEP8 guidelines should be followed where possible, but deviations from it where
-    it makes sense and improves legibility are encouraged. Do not be dogmatic.
+4.  Inline type hints should be used, with an emphasis on ensuring that introspection and
+    autocompletion tools such as Jedi are able to understand the code wherever possible.
 
-5.  This repository intentionally disallows the PEP8 79-character limit. Therefore,
+5.  PEP8 guidelines should be followed where possible, but deviations from it where
+    it makes sense and improves legibility are encouraged. The following PEP8 error
+    codes can be safely ignored: E121, E123, E126, E226, E24, E704, W503
+
+6.  This repository intentionally disallows the PEP8 79-character limit. Therefore,
     any contributions adhering to this convention will be rejected. As a rule of
     thumb you should endeavor to stay under 200 characters except where going over
     preserves alignment, or where the line is mostly non-algorythmic code, such as
-    an extremely long descriptive string or function call.
+    extremely long strings or function calls.

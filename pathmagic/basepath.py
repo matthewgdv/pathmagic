@@ -127,6 +127,9 @@ class BasePath(os.PathLike, ABC):
         finally:
             os.chdir(current)
 
+    def _get_settings(self) -> Settings:
+        return Settings()
+
     @staticmethod
     def _prepare_dir_if_not_exists(path: PathLike) -> None:
         try:

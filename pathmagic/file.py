@@ -38,7 +38,7 @@ class File(BasePath):
         self._dir: Dir = None
 
         self._format = FormatHandler(self)
-        self.settings = Maybe(settings).else_(Settings())
+        self.settings = Maybe(settings).else_(self._get_settings())
 
         self._prepare_file_if_not_exists(path)
         self._set_params(path, move=False)

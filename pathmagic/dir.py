@@ -38,7 +38,7 @@ class Dir(BasePath):
         self._files: Dict[str, Optional[File]] = {}
         self._dirs: Dict[str, Optional[Dir]] = {}
 
-        self.settings = Maybe(settings).else_(Settings())
+        self.settings = Maybe(settings).else_(self._get_settings())
 
         self._prepare_dir_if_not_exists(path)
         self._set_params(path, move=False)

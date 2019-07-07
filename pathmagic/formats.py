@@ -8,6 +8,7 @@ from abc import ABCMeta
 from collections import defaultdict
 from types import MethodType
 from typing import Any, Callable, Dict, Optional, Set, Type, cast, TYPE_CHECKING
+import pathlib
 
 from maybe import Maybe
 from subtypes import Enum, Str, Markup, Frame
@@ -182,7 +183,7 @@ class Image(Format):
         self.writefuncs[self.file.extension](item.convert("RGB"), self.file.path, **kwargs)
 
 
-class Music(Format):
+class Audio(Format):
     formats = {"mp3", "wav", "ogg", "flv"}
 
     def initialize(self) -> None:
@@ -234,7 +235,7 @@ class Compressed(Format):
 
     def initialize(self) -> None:
         self.readfuncs.update({"zip": zipfile.ZipFile, "tar": tarfile.TarFile})
-        self.writefuncs.update({"zip": type(self.file.dir).compress})
+        self.writefuncs.update({"zip": self.file.settings.dirclass.compress})
 
     def read(self, **kwargs: Any) -> Dir:
         output = self.file.dir.newdir(self.file.prename)
@@ -262,16 +263,16 @@ class Link(Format):
 
         shell = win.Dispatch("WScript.Shell")
         shortcut = shell.CreateShortCut(os.path.realpath(linkpath))
+        path = pathlib.Path(shortcut.Targetpath)
 
-        if os.path.isfile(shortcut.Targetpath):
-            constructor = type(self.file)
-        elif os.path.isdir(shortcut.Targetpath):
-            constructor = type(self.file.dir)
+        if path.is_file():
+            constructor = self.file.settings.fileclass
+        elif path.is_dir():
+            constructor = self.file.settings.dirclass
         else:
             raise RuntimeError(f"Unrecognized path type of shortcut target: '{shortcut.Targetpath}'. Must be file or directory.")
 
-        ret = constructor(shortcut.Targetpath)
-        return ret
+        return constructor(path)
 
     @staticmethod
     def _writelink(item: PathLike, linkpath: PathLike) -> None:
