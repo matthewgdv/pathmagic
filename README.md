@@ -36,17 +36,17 @@ File
 
     | format        |   class accepted/returned         |   file extensions         |
     | ------------- | --------------------------------- | ------------------------- |
-    | Pdf           |   PyPDF2                          |   [pdf]                   |
-    | Tabular       |   subtypes.Frame                  |   [xlsx, csv]             |
-    | Word          |   docx.Document                   |   [docx]                  |
-    | Image         |   PIL.Image                       |   [png, jpf, jpeg]        |
-    | Audio         |   pydub.AudioSegment              |   [mp3, wav, ogg, flv]    |
-    | Video         |   Moviepy.editor.edit             |   [mp4, mkv, avi, gif]    |
-    | Compressed    |   pathmagic.Dir                   |   [zip, tar]              |
-    | Link          |   pathlib.File or Pathlib.Dir     |   [lnk]                   |
-    | Serialized    |   Any                             |   [pkl]                   |
-    | Json          |   dict                            |   [json]                  |
-    | MarkUp        |   subtypes.Markup                 |   [html, xml]             |
+    | Pdf           |   PyPDF2                          |   pdf                     |
+    | Tabular       |   subtypes.Frame                  |   xlsx, csv               |
+    | Word          |   docx.Document                   |   docx                    |
+    | Image         |   PIL.Image                       |   png, jpf, jpeg          |
+    | Audio         |   pydub.AudioSegment              |   mp3, wav, ogg, flv      |
+    | Video         |   Moviepy.editor.edit             |   mp4, mkv, avi, gif      |
+    | Compressed    |   pathmagic.Dir                   |   zip, tar                |
+    | Link          |   pathlib.File or Pathlib.Dir     |   lnk                     |
+    | Serialized    |   Any                             |   pkl                     |
+    | Json          |   dict                            |   json                    |
+    | MarkUp        |   subtypes.Markup                 |   html, xml               |
     | Default       |   str                             |   everything else         |
 
 
