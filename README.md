@@ -31,7 +31,7 @@ The `File` class
 * Initialize from script entry point (in traditional interpreter), and from a package resource
 * `File.read()` and `File.write()` methods (and associated `File.contents` property) which invokes
   the `FormatHandler` class to determine how to read from/write to the file based on its extension.
-  `FormatHandler` uses the factory design pattern and can be extended at runtime to enable File to
+  `FormatHandler` uses the factory design pattern and can be extended at runtime to enable `File` to
   handle types of files that are not supported by default.
 * By default, recognized formats are the following:
 
