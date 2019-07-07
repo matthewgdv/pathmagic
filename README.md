@@ -26,25 +26,29 @@ Dir
 File
 --------------------
 * Properties that perform rename and move operations when set (path, dir, name, prename, extension)
+* Methods to copy/move self to another path/dir or delete self
+* Initialize from script entry point (in traditional interpreter), and from a package resource
 * File.read() and File.write() methods (and associated File.contents property) which invokes as
   FormatHandler class, that determines how to read from/write to the file based on its extension.
   FormatHandler uses the factory design pattern and can be extended at runtime to enable File to
   handle types of files that are not supported by default.
-* By default, recognized formats are the following, and will produce/accept the following objects:
-    * Pdf           (PyPDF2)                        [pdf]
-    * Tabular       (subtypes.Frame)                [xlsx, csv]
-    * Word          (docx.Document)                 [docx]
-    * Image         (PIL.Image)                     [png, jpf, jpeg]
-    * Audio         (pydub.AudioSegment)            [mp3, wav, ogg, flv]
-    * Video         (Moviepy.editor.edit)           [mp4, mkv, avi, gif]
-    * Compressed    (pathmagic.Dir)                 [zip, tar]
-    * Link          (pathlib.File or Pathlib.Dir)   [lnk]
-    * Serialized    (Any)                           [pkl]
-    * Json          (dict)                          [json]
-    * MarkUp        (subtypes.Markup)               [html, xml]
-    * Default       (str)                           everything else
-* Methods to copy/move self to another path/dir or delete self
-* Initialize from script entry point (in traditional interpreter), and from a package resource
+* By default, recognized formats are the following:
+
+    | format        |   class accepted/returned         |   file extensions         |
+    | ------------- | --------------------------------- | ------------------------- |
+    | Pdf           |   PyPDF2                          |   [pdf]                   |
+    | Tabular       |   subtypes.Frame                  |   [xlsx, csv]             |
+    | Word          |   docx.Document                   |   [docx]                  |
+    | Image         |   PIL.Image                       |   [png, jpf, jpeg]        |
+    | Audio         |   pydub.AudioSegment              |   [mp3, wav, ogg, flv]    |
+    | Video         |   Moviepy.editor.edit             |   [mp4, mkv, avi, gif]    |
+    | Compressed    |   pathmagic.Dir                   |   [zip, tar]              |
+    | Link          |   pathlib.File or Pathlib.Dir     |   [lnk]                   |
+    | Serialized    |   Any                             |   [pkl]                   |
+    | Json          |   dict                            |   [json]                  |
+    | MarkUp        |   subtypes.Markup                 |   [html, xml]             |
+    | Default       |   str                             |   everything else         |
+
 
 Installation
 ====================
