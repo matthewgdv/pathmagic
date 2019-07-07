@@ -23,7 +23,7 @@ away nearly all file system I/O to a much higher degree than os.path or pathlib.
 * Visualize tree to arbitrary depth with an ascii representation
 * Initialize from homepath, desktop, or package
 
-File
+`File`
 --------------------
 * Properties that perform rename and move operations when set (`File.path`, `File.dir`, `File.name`,
   `File.prename`, `File.extension`)
