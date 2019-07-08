@@ -80,6 +80,9 @@ class DotAccessor:
         def __init__(self, name: str) -> None:
             self.name = name
 
+        def __repr__(self) -> str:
+            return f"{type(self).__name__}('{self.name}')"
+
     def __init__(self, accessor: Accessor) -> None:
         self._accessor = accessor
         self._mappings: Dict[str, List[str]] = {}
@@ -93,7 +96,9 @@ class DotAccessor:
             return val
 
     def __getattr__(self, name: str) -> Any:
-        if not name.startswith("__"):
+        if name.startswith("__"):
+            raise AttributeError(name)
+        else:
             names = self._mappings.get(name)
             if names is None:
                 self._accessor._sync()
