@@ -63,6 +63,9 @@ class BasePath(os.PathLike, ABC):
     def __fspath__(self) -> str:
         return str(self)
 
+    def __hash__(self) -> int:
+        return id(self)
+
     def __eq__(self, other: Any) -> bool:
         return os.fspath(self) == os.fspath(other)
 
