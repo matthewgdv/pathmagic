@@ -1,24 +1,18 @@
 Overview
 ====================
 
-Pathmagic implements two classes, `File` and `Dir`, to represent mapped file system obects
-in a manner similar to database ORMs like sqlalchemy. These objects have properties which
-perform file system operations when set, and implement many useful methods to abstract
-away nearly all file system I/O to a much higher degree than os.path or pathlib.
+Pathmagic implements two classes, `File` and `Dir`, to represent mapped file system obects in a manner similar to database ORMs like sqlalchemy. These objects have properties which
+perform file system operations when set, and implement many useful methods to abstract away nearly all file system I/O to a much higher degree than os.path or pathlib.
 
 The `Dir` class
 --------------------
 * Properties that perform rename and move operations when set (`Dir.path`, `Dir.dir`, `Dir.name`)
-* Two accessor objects (`Dir.files`, `Dir.dirs`) which allow iteration over their respective
-  collections, item access, membership tests, and more
-* Two specialized accessor objects (`Dir.d`, `Dir.f`), which dynamically populate themselves with
-  snake_cased attributes that represent the files/folders in their `Dir`, such that the filesystem
-  tree can be traversed purely through attribute access
-* Methods to create new files/dirs, copy/move self to another path/dir, delete self or contents,
-  and join self to a relative path
+* Two accessor objects (`Dir.files`, `Dir.dirs`) which allow iteration over their respective   collections, item access, membership tests, and more
+* Two specialized accessor objects (`Dir.d`, `Dir.f`), which dynamically populate themselves with snake_cased attributes that represent the files/folders in their `Dir`, such that
+  the filesystem tree can be traversed purely through attribute access
+* Methods to create new files/dirs, copy/move self to another path/dir, delete self or contents, and join self to a relative path
 * Recursively walk the tree downwards, comparing own tree to a parallel filesystem tree
-* Recursively seek files or dirs down the directory tree with inclusions/exclusions based on
-  valid extensions and regex patterns matching name, path, and (if a non-encoded file) contents.
+* Recursively seek files or dirs down the directory tree with inclusions/exclusions based on valid extensions and regex patterns matching name, path, and contents.
 * Compress self into a zipfile
 * Visualize tree to arbitrary depth with an ascii representation
 * Initialize from homepath, desktop, or package
@@ -29,10 +23,8 @@ The `File` class
   `File.prename`, `File.extension`)
 * Methods to copy/move self to another path/dir or delete self
 * Initialize from script entry point (in traditional interpreter), and from a package resource
-* `File.read()` and `File.write()` methods (and associated `File.contents` property) which invokes
-  the `FormatHandler` class to determine how to read from/write to the file based on its extension.
-  `FormatHandler` uses the factory design pattern and can be extended at runtime to enable `File` to
-  handle types of files that are not supported by default.
+* `File.read()` and `File.write()` methods (and associated `File.contents` property) which invokes the `FormatHandler` class to determine how to read from/write to the file based
+  on its extension. `FormatHandler` uses the factory design pattern and can be extended at runtime to enable `File` to handle types of files that are not supported by default.
 * By default, recognized formats are the following:
 
     | format        |   class accepted/returned         |   file extensions         |
@@ -73,8 +65,7 @@ Detailed usage examples coming soon.
 Contributing
 ====================
 
-Contributions are welcome, and they are greatly appreciated! Every
-little bit helps, and credit will always be given.
+Contributions are welcome, and they are greatly appreciated! Every little bit helps, and credit will always be given.
 
 You can contribute in many ways:
 
@@ -92,20 +83,17 @@ If you are reporting a bug, please include:
 Fix Bugs
 --------------------
 
-Look through the GitHub issues for bugs. Anything tagged with "bug"
-and "help wanted" is open to whoever wants to implement a fix for it.
+Look through the GitHub issues for bugs. Anything tagged with "bug" and "help wanted" is open to whoever wants to implement a fix for it.
 
 Implement Features
 --------------------
 
-Look through the GitHub issues for features. Anything tagged with "enhancement"
-and "help wanted" is open to whoever wants to implement it.
+Look through the GitHub issues for features. Anything tagged with "enhancement" and "help wanted" is open to whoever wants to implement it.
 
 Write Documentation
 --------------------
 
-The repository could always use more documentation, whether as part of the
-official docs, in docstrings, or even on the web in blog posts, articles, and such.
+The repository could always use more documentation, whether as part of the official docs, in docstrings, or even on the web in blog posts, articles, and such.
 
 Submit Feedback
 --------------------
@@ -123,25 +111,18 @@ Get Started!
 
 Before you submit a pull request, check that it meets these guidelines:
 
-1.  If the pull request adds functionality, it should include tests and the docs
-    should be updated. Write docstrings for any functions that are part of the external API,
-    and add the feature to the README.md.
+1.  If the pull request adds functionality, it should include tests and the docs should be updated. Write docstrings for any functions that are part of the external API, and add
+    the feature to the README.md.
 
-2.  If the pull request fixes a bug, tests should be added proving that the bug has been fixed.
-    However, no update to the docs is necessary for bugfixes.
+2.  If the pull request fixes a bug, tests should be added proving that the bug has been fixed. However, no update to the docs is necessary for bugfixes.
 
-3.  The pull request should work for the newest version of Python (currently 3.7). Older
-    versions may incidentally work, but are not officially supported.
+3.  The pull request should work for the newest version of Python (currently 3.7). Older versions may incidentally work, but are not officially supported.
 
-4.  Inline type hints should be used, with an emphasis on ensuring that introspection and
-    autocompletion tools such as Jedi are able to understand the code wherever possible.
+4.  Inline type hints should be used, with an emphasis on ensuring that introspection and autocompletion tools such as Jedi are able to understand the code wherever possible.
 
-5.  PEP8 guidelines should be followed where possible, but deviations from it where
-    it makes sense and improves legibility are encouraged. The following PEP8 error
-    codes can be safely ignored: E121, E123, E126, E226, E24, E704, W503
+5.  PEP8 guidelines should be followed where possible, but deviations from it where it makes sense and improves legibility are encouraged. The following PEP8 error codes can be
+    safely ignored: E121, E123, E126, E226, E24, E704, W503
 
-6.  This repository intentionally disallows the PEP8 79-character limit. Therefore,
-    any contributions adhering to this convention will be rejected. As a rule of
-    thumb you should endeavor to stay under 200 characters except where going over
-    preserves alignment, or where the line is mostly non-algorythmic code, such as
-    extremely long strings or function calls.
+6.  This repository intentionally disallows the PEP8 79-character limit. Therefore, any contributions adhering to this convention will be rejected. As a rule of thumb you should
+    endeavor to stay under 200 characters except where going over preserves alignment, or where the line is mostly non-algorythmic code, such as extremely long strings or function
+    calls.
