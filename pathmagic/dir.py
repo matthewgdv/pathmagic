@@ -139,7 +139,6 @@ class Dir(BasePath):
         """Create a new copy of this Dir at the specified path. Returns self."""
         self._validate(path)
         shutil.copytree(self, os.path.abspath(path))
-
         return self
 
     def newcopyto(self, directory: PathLike) -> Dir:
@@ -150,7 +149,7 @@ class Dir(BasePath):
 
     def copyto(self, directory: PathLike) -> Dir:
         """Create a new copy of this Dir within the specified path. If passed an existing Dir, both objects will implicitly call acquire references to each other. Otherwise it will instantiate a new Dir first. Returns self."""
-        self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, validate=True)
+        self.newcopyto(directory)
         return self
 
     def move(self, path: PathLike) -> Dir:

@@ -191,32 +191,29 @@ class File(BasePath):
         """Rename a new copy of this File in-place to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns the copy."""
         return self.newcopy(self.dir.path.joinpath(f"{name}{('.' + Maybe(extension)).else_('')}"))
 
-    def newcopy(self, path: str) -> File:
+    def newcopy(self, path: PathLike) -> File:
         """Create a new copy of this File at the specified path. Returns the new File."""
-        return type(self)(os.path.abspath(path), settings=self.settings)
+        self.copy(path)
+        return self.settings.fileclass(path, settings=self.settings)
 
-    def copy(self, path: str) -> File:
+    def copy(self, path: PathLike) -> File:
         """Create a new copy of this File at the specified path. Returns self."""
-        try:
-            self._validate(path)
-        except FileExistsError:
-            pass
-        else:
-            shutil.copyfile(self, os.path.abspath(path))
-
+        self._validate(path)
+        shutil.copyfile(self, os.path.abspath(path))
         return self
 
     def newcopyto(self, directory: Dir) -> File:
         """Create a new copy of this File within the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns the new File."""
-        directory._bind(self)
-        return directory.files[self.name]
+        parent = self.settings.dirclass.from_pathlike(directory, settings=self.settings)
+        parent._bind(self, validate=True)
+        return parent.files[self.name]
 
     def copyto(self, directory: Dir) -> File:
         """Create a new copy of this File within the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns self."""
-        directory._bind(self)
+        self.newcopyto(directory)
         return self
 
-    def move(self, path: str) -> File:
+    def move(self, path: PathLike) -> File:
         """Move this this File to the specified path. Returns self."""
         self._validate(path)
         self._set_params(path)
@@ -224,13 +221,14 @@ class File(BasePath):
 
     def moveto(self, directory: Dir) -> File:
         """Move this File to the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns self."""
-        directory._bind(self, preserve_original=False)
+        self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False, validate=True)
         return self
 
     def delete(self, backup: bool = False) -> File:
         """Delete this File's object's mapped file from the file system. The File object will persist and may still be used."""
         if backup:
-            self._synchronize()
+            self.read()
+
         os.remove(self)
         return self
 
