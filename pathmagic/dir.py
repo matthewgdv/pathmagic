@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import os
 import pathlib
 import shutil
@@ -144,7 +143,7 @@ class Dir(BasePath):
     def newcopyto(self, directory: PathLike) -> Dir:
         """Create a new copy of this Dir within the specified path. If passed an existing Dir, both objects will implicitly call acquire references to each other. Otherwise it will instantiate a new Dir first. Returns the copy."""
         parent = self.dirclass.from_pathlike(directory, settings=self.settings)
-        parent._bind(self, validate=True)
+        parent._bind(self)
         return parent.dirs[self.name]
 
     def copyto(self, directory: PathLike) -> Dir:
@@ -160,18 +159,22 @@ class Dir(BasePath):
 
     def moveto(self, directory: PathLike) -> Dir:
         """Move this Dir to the specified Dir object. If passed an existing Dir, both objects will implicitly call acquire references to each other. Returns self."""
-        self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False, validate=True)
+        self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False)
         return self
 
     def delete(self) -> Dir:
         """Delete this Dir object's mapped directory from the file system. The Dir object will persist and may still be used."""
-        shutil.rmtree(self)
+        shutil.rmtree(self, ignore_errors=True)
         return self
 
     def clear(self) -> Dir:
         """Delete all files and directories contained within this Dir."""
         for pathlike in self:
             pathlike.delete()
+
+        self._synchronize_files()
+        self._synchronize_dirs()
+
         return self
 
     def makefile(self, name: str, extension: str = None) -> Dir:
@@ -323,39 +326,35 @@ class Dir(BasePath):
         loc, = package.__spec__.submodule_search_locations
         return cls(loc, settings=settings)
 
-    def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True, validate: bool = False) -> None:
+    def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True) -> None:
         """
         Acquire a reference to the specified File or Dir in this object's 'files' or 'dirs' property, and in return provide that object a reference to this Dir as its 'dir' property.
         The target File or Dir will be copied and placed in this Dir if the 'preserve_original' argument is true, otherwise it will be moved instead.
         """
-        if self == os.path.dirname(existing_object):
-            if validate:
-                self._validate(existing_object)
-            else:
-                unbound = existing_object
-        else:
-            unbound = (existing_object.newcopy if preserve_original else existing_object.move)(self.path.joinpath(existing_object.name))
-        unbound._dir = self
+        pathlike = existing_object if self == os.path.dirname(existing_object) else (existing_object.newcopy if preserve_original else existing_object.move)(self.path.joinpath(existing_object.name))
+        pathlike._dir = self
 
-        mro = inspect.getmro(type(unbound))
-
-        if File in mro and Dir in mro:
+        if issubclass(type(pathlike), File) and issubclass(type(pathlike), Dir):
             raise TypeError(f"Objects to bind must be {File.__name__} or {Dir.__name__} (or some subclass), but may not inherit from both.")
-        elif File in mro:
-            self._files[unbound.name] = unbound
-        elif Dir in mro:
-            self._dirs[unbound.name] = unbound
+        elif issubclass(type(pathlike), File):
+            self._files[pathlike.name] = pathlike
+        elif issubclass(type(pathlike), Dir):
+            self._dirs[pathlike.name] = pathlike
         else:
             raise TypeError(f"Objects to bind must be {File.__name__} or {Dir.__name__} (or some subclass), not {type(existing_object).__name__}")
 
     def _synchronize_files(self) -> None:
         realfiles = [item.name for item in os.scandir(self) if item.is_file()]
-        self._files.update({name: self._files.get(name) for name in realfiles})
+        newfiles = {name: self._files.get(name) for name in realfiles}
+        self._files.clear()
+        self._files.update(newfiles)
         self.f._acquire(realfiles)
 
     def _synchronize_dirs(self) -> None:
         realdirs = [item.name for item in os.scandir(self) if item.is_dir()]
-        self._dirs.update({name: self._dirs.get(name) for name in realdirs})
+        newdirs = {name: self._dirs.get(name) for name in realdirs}
+        self._dirs.clear()
+        self._dirs.update(newdirs)
         self.d._acquire(realdirs)
 
     def _access_files(self, name: str) -> File:

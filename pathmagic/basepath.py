@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import inspect
 import os
 from abc import ABC, abstractmethod
 from typing import Any, Iterator, Union, Type, TYPE_CHECKING
@@ -44,7 +43,7 @@ class Settings:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
 
 
-class BasePath(os.PathLike, ABC):
+class BasePath(ABC):
     """Abstract Base Class from which 'File' and 'Dir' objects derive."""
 
     IfExists = IfExists
@@ -110,7 +109,7 @@ class BasePath(os.PathLike, ABC):
 
     @classmethod
     def from_pathlike(cls, pathlike: PathLike, settings: Settings = None) -> BasePath:
-        return pathlike if cls in inspect.getmro(type(pathlike)) else cls(path=pathlike, settings=settings)
+        return pathlike if isinstance(pathlike, cls) else cls(path=pathlike, settings=settings)
 
     @staticmethod
     def chdir(path: PathLike) -> None:
@@ -135,16 +134,10 @@ class BasePath(os.PathLike, ABC):
 
     @staticmethod
     def _prepare_dir_if_not_exists(path: PathLike) -> None:
-        try:
-            os.makedirs(os.path.abspath(path))
-        except FileExistsError:
-            pass
+        pathlib.Path(os.path.abspath(path)).mkdir(parents=True, exist_ok=True)
 
     @staticmethod
     def _prepare_file_if_not_exists(path: PathLike) -> None:
+        path = os.path.abspath(path)
         BasePath._prepare_dir_if_not_exists(os.path.dirname(path))
-        try:
-            with open(os.path.abspath(path), "a"):
-                pass
-        except PermissionError:
-            pass
+        pathlib.Path(path).touch()

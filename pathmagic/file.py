@@ -205,7 +205,7 @@ class File(BasePath):
     def newcopyto(self, directory: Dir) -> File:
         """Create a new copy of this File within the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns the new File."""
         parent = self.settings.dirclass.from_pathlike(directory, settings=self.settings)
-        parent._bind(self, validate=True)
+        parent._bind(self)
         return parent.files[self.name]
 
     def copyto(self, directory: Dir) -> File:
@@ -221,7 +221,7 @@ class File(BasePath):
 
     def moveto(self, directory: Dir) -> File:
         """Move this File to the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns self."""
-        self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False, validate=True)
+        self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False)
         return self
 
     def delete(self, backup: bool = False) -> File:
