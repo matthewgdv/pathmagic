@@ -314,19 +314,32 @@ class Json(Format):
         import json
 
         self.module = json
+        type(self).namespace_cls = self._try_get_namespace_cls()
         self.readfuncs.update({"json": self.module.load})
         self.writefuncs.update({"json": self.module.dump})
 
     def read(self, **kwargs) -> Any:
         try:
             with open(self.file) as file:
-                return self.readfuncs[self.file.extension](file)
+                ret = self.readfuncs[self.file.extension](file)
+                return self.namespace_cls(ret) if self.namespace_cls is not None and isinstance(ret, dict) else ret
         except self.module.JSONDecodeError:
             return Default(self.file).read() or None
 
     def write(self, item: Any, indent: int = 4, **kwargs) -> None:
+        if self.namespace_cls is not None and isinstance(item, self.namespace_cls):
+            item = item.to_dict()
+
         with open(self.file, "w") as file:
             self.writefuncs[self.file.extension](item, file, indent=indent)
+
+    @staticmethod
+    def _try_get_namespace_cls() -> Any:
+        try:
+            from miscutils import NameSpace
+            return NameSpace
+        except ImportError:
+            return lambda val: val
 
 
 class MarkUp(Format):
