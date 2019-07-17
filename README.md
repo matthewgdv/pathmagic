@@ -38,7 +38,7 @@ The `File` class
     | Compressed    |   pathmagic.Dir                   |   zip, tar                |
     | Link          |   pathlib.File or Pathlib.Dir     |   lnk                     |
     | Serialized    |   Any                             |   pkl                     |
-    | Json          |   dict                            |   json                    |
+    | Json          |   subtypes.NameSpace or Any       |   json                    |
     | MarkUp        |   subtypes.Markup                 |   html, xml               |
     | Default       |   str                             |   everything else         |
 
