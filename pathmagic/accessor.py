@@ -122,7 +122,7 @@ class DotAccessor:
     def __acquire_references_as_attributes(self) -> None:
         self._mappings.clear()
         for name in self._pending:
-            clean = str((Str(name).before_first(r"\.") if type(self)._strip_extension else Str(name)).identifier())
+            clean = str((Str(name).slice.before_first(r"\.") if type(self)._strip_extension else Str(name)).case.identifier())
             self._mappings.setdefault(clean, []).append(name)
 
         self._pending.clear()

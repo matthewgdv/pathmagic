@@ -223,9 +223,9 @@ class Dir(BasePath):
         for file in self.files:
             if (
                 (extensions is None or file.extension in extensions)
-                and (name is None or Str(file.prename).search(name, flags=re_flags))
-                and (dirpath is None or Str(self).search(dirpath, flags=re_flags))
-                and (contents is None or (len(file) > 0 and Str(file.contents).search(contents, flags=re_flags)))
+                and (name is None or Str(file.prename).re.search(name, flags=re_flags))
+                and (dirpath is None or Str(self).re.search(dirpath, flags=re_flags))
+                and (contents is None or (len(file) > 0 and Str(file.contents).re.search(contents, flags=re_flags)))
             ):
                 yield file
 
@@ -247,10 +247,10 @@ class Dir(BasePath):
 
         for directory in self.dirs:
             if (
-                (name is None or Str(directory.name).search(name, flags=re_flags))
-                and (dirpath is None or Str(self).search(dirpath, flags=re_flags))
-                and (contains_filename is None or any([Str(file.name).search(contains_filename, flags=re_flags) is not None for file in directory.files]))
-                and (contains_dirname is None or any([Str(subdir.name).search(contains_dirname, flags=re_flags) is not None for subdir in directory.dirs]))
+                (name is None or Str(directory.name).re.search(name, flags=re_flags))
+                and (dirpath is None or Str(self).re.search(dirpath, flags=re_flags))
+                and (contains_filename is None or any([Str(file.name).re.search(contains_filename, flags=re_flags) is not None for file in directory.files]))
+                and (contains_dirname is None or any([Str(subdir.name).re.search(contains_dirname, flags=re_flags) is not None for subdir in directory.dirs]))
             ):
                 yield directory
 
@@ -387,13 +387,13 @@ class Dir(BasePath):
                         file_inclusion: str = None, file_exclusion: str = None, dir_inclusion: str = None, dir_exclusion: str = None) -> None:
 
         for filename in self.files():
-            if (file_inclusion is None or Str(filename).search(file_inclusion) is not None) and (file_exclusion is None or Str(filename).search(file_exclusion) is None):
+            if (file_inclusion is None or Str(filename).re.search(file_inclusion) is not None) and (file_exclusion is None or Str(filename).re.search(file_exclusion) is None):
                 outlist.append(f"{padding} |")
                 outlist.append(f"{padding} +--{filename}")
 
         dirs = [folder for folder in self.dirs
-                if (dir_inclusion is None or Str(folder.name).search(dir_inclusion) is not None)
-                and (dir_exclusion is None or Str(folder.name).search(dir_exclusion) is None)]
+                if (dir_inclusion is None or Str(folder.name).re.search(dir_inclusion) is not None)
+                and (dir_exclusion is None or Str(folder.name).re.search(dir_exclusion) is None)]
 
         if depth is not None:
             if depth <= 0:
