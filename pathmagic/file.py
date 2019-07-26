@@ -44,7 +44,10 @@ class File(BasePath):
         self._set_params(path, move=False)
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}(path={repr(self.path)}, lines={len(self) or '?'})"
+        try:
+            return f"{type(self).__name__}(path={repr(self.path)}, lines={len(self) or '?'})"
+        except FileNotFoundError:
+            return f"{type(self).__name__}(path={repr(self.path)}, deleted=True, lines=?)"
 
     def __len__(self) -> int:
         if self.extension not in self._format.formats and not zipfile.is_zipfile(self.path) and not tarfile.is_tarfile(self.path):
