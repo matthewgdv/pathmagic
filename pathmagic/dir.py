@@ -8,6 +8,7 @@ import zipfile
 from typing import Any, Collection, Dict, Iterator, List, Optional, Tuple, Union, cast
 from types import ModuleType
 
+from appdirs import user_data_dir
 from maybe import Maybe
 from subtypes import Str
 
@@ -325,6 +326,10 @@ class Dir(BasePath):
     def from_package(cls, package: ModuleType, settings: Settings = None) -> Dir:
         loc, = package.__spec__.submodule_search_locations
         return cls(loc, settings=settings)
+
+    @classmethod
+    def from_appdata(cls, appname: str, appauthor: str, version: str = None, roaming: bool = False, settings: Settings = None):
+        return cls(user_data_dir(appname=appname, appauthor=appauthor, version=version, roaming=roaming), settings=settings)
 
     def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True) -> None:
         """
