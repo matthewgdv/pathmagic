@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 from os import path
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 here = path.abspath(path.dirname(__file__))
 
@@ -30,10 +30,10 @@ setup(
         'dill',
         'docx',
         'lazy_property',
-        'maybe',
+        'maybe-else',
         'moviepy',
         'pydub',
-        'subtypes'
+        'pysubtypes'
     ],
     author="Matt GdV",
     author_email="matthewgdv@gmail.com"
