@@ -2,7 +2,7 @@ Overview
 ====================
 
 Pathmagic implements two classes, `File` and `Dir`, to represent mapped file system obects in a manner similar to database ORMs like sqlalchemy. These objects have properties which
-perform file system operations when set, and implement many useful methods to abstract away nearly all file system I/O to a much higher degree than os.path or pathlib.
+perform file system operations when set, and implement many useful methods to abstract away nearly all file system I/O to a much higher degree than `os.path` or `pathlib`.
 
 The `Dir` class
 --------------------

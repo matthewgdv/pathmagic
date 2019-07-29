@@ -23,15 +23,17 @@ setup(
     ],
     packages=find_packages(exclude=["tests*"]),
     install_requires=[
-        "aenum",
-        "bs4",
-        "regex",
-        "inflect",
-        "fuzzywuzzy",
-        "dateutil",
-        "pandas",
-        "numpy",
-        "tabulate"
+        'Pillow',
+        'PyPDF2',
+        'appdirs',
+        'bs4',
+        'dill',
+        'docx',
+        'lazy_property',
+        'maybe',
+        'moviepy',
+        'pydub',
+        'subtypes'
     ],
     author="Matt GdV",
     author_email="matthewgdv@gmail.com"
