@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 from os import path
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 here = path.abspath(path.dirname(__file__))
 
@@ -14,7 +14,7 @@ setup(
     description="Provides ORM path classes (File and Dir), which automatically emit file system IO operations upon having their attributes modified. File objects allow for easy content manipulation of many forms of files.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/matthewgdv/maybe",
+    url="https://github.com/matthewgdv/pathmagic",
     license="MIT",
     classifiers=[
       "Development Status :: 3 - Alpha",
