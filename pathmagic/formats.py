@@ -7,7 +7,7 @@ import zipfile
 from abc import ABCMeta
 from collections import defaultdict
 from types import MethodType
-from typing import Any, Callable, Dict, Optional, Set, Type, cast, TYPE_CHECKING
+from typing import Any, Callable, Dict, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
@@ -78,16 +78,13 @@ class FormatHandler:
 
 
 class FormatMeta(ABCMeta):
-    readfuncs: Dict[str, Callable]
-    writefuncs: Dict[str, Callable]
-
-    def __new__(mcs, name: str, bases: Any, namespace: dict) -> FormatMeta:
-        cls = cast(FormatMeta, super().__new__(mcs, name, bases, namespace))
+    def __new__(mcs, name: str, bases: Any, namespace: dict) -> Type[Format]:
+        cls: Type[Format] = super().__new__(mcs, name, bases, namespace)
 
         cls.readfuncs, cls.writefuncs = {}, {}
 
-        if bases:
-            FormatHandler.add_format(cls)  # type: ignore
+        if cls.formats:
+            FormatHandler.add_format(cls)
 
         return cls
 
@@ -97,7 +94,7 @@ class Format(metaclass=FormatMeta):
     readfuncs = writefuncs = None  # type: Dict[str, Callable]
 
     initialized = False
-    _module: Any = None
+    module: Any = None
 
     def __init__(self, file: File):
         self.file = file
@@ -114,7 +111,8 @@ class Format(metaclass=FormatMeta):
     def module(self, val: Any) -> None:
         type(self)._module = val
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         raise RuntimeError("Must provide an implementation of Format.initialize(), which will only be called the first time the Format is instanciated. This method should import expensive modules (if needed) and update the Format.readfuncs and Format.writefuncs dictionaries.")
 
     def read(self, **kwargs: Any) -> Any:
@@ -133,22 +131,24 @@ class Format(metaclass=FormatMeta):
 class Pdf(Format):
     formats = {"pdf"}
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         import PyPDF2
 
-        self.module = PyPDF2
-        self.readfuncs.update({"pdf": self.module.PdfFileReader})
+        cls.module = PyPDF2
+        cls.readfuncs.update({"pdf": cls.module.PdfFileReader})
 
 
 class Tabular(Format):
     formats = {"xlsx", "csv"}
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         import pandas as pd
 
-        self.module = pd
-        self.readfuncs.update({"xlsx": Frame.from_excel, "csv": Frame.from_csv})
-        self.writefuncs.update({"xlsx": Frame.to_excel, "csv": Frame.to_csv})
+        cls.module = pd
+        cls.readfuncs.update({"xlsx": Frame.from_excel, "csv": Frame.from_csv})
+        cls.writefuncs.update({"xlsx": Frame.to_excel, "csv": Frame.to_csv})
 
     def readhelp(self) -> None:
         help({"xlsx": self.module.read_excel, "csv": self.module.read_csv}[self.file.extension])
@@ -160,24 +160,26 @@ class Tabular(Format):
 class Word(Format):
     formats = {"docx"}
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         import docx
         from docx import document
 
-        self.module = docx
-        self.readfuncs.update({"docx": self.module.Document})
-        self.writefuncs.update({"docx": document.Document.save})
+        cls.module = docx
+        cls.readfuncs.update({"docx": cls.module.Document})
+        cls.writefuncs.update({"docx": document.Document.save})
 
 
 class Image(Format):
     formats = {"png", "jpg", "jpeg"}
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         from PIL import Image
 
-        self.module = Image
-        self.readfuncs.update({extension: self.module.open for extension in self.formats})
-        self.writefuncs.update({extension: self.module.Image.save for extension in self.formats})
+        cls.module = Image
+        cls.readfuncs.update({extension: cls.module.open for extension in cls.formats})
+        cls.writefuncs.update({extension: cls.module.Image.save for extension in cls.formats})
 
     def write(self, item: Any, **kwargs: Any) -> None:
         self.writefuncs[self.file.extension](item.convert("RGB"), self.file.path, **kwargs)
@@ -186,24 +188,25 @@ class Image(Format):
 class Audio(Format):
     formats = {"mp3", "wav", "ogg", "flv"}
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         import pydub
 
-        self.module = pydub
-        self.readfuncs.update(
+        cls.module = pydub
+        cls.readfuncs.update(
             {
-                "mp3": self.module.AudioSegment.from_mp3,
-                "wav": self.module.AudioSegment.from_wav,
-                "ogg": self.module.AudioSegment.from_ogg,
-                "flv": self.module.AudioSegment.from_flv
+                "mp3": cls.module.AudioSegment.from_mp3,
+                "wav": cls.module.AudioSegment.from_wav,
+                "ogg": cls.module.AudioSegment.from_ogg,
+                "flv": cls.module.AudioSegment.from_flv
             }
         )
-        self.writefuncs.update(
+        cls.writefuncs.update(
             {
-                "mp3": lambda *args, **kwargs: self.module.AudioSegment.export(*args, format="mp3", **kwargs),
-                "wav": lambda *args, **kwargs: self.module.AudioSegment.export(*args, format="wav", **kwargs),
-                "ogg": lambda *args, **kwargs: self.module.AudioSegment.export(*args, format="ogg", **kwargs),
-                "flv": lambda *args, **kwargs: self.module.AudioSegment.export(*args, format="flv", **kwargs)
+                "mp3": lambda *args, **kwargs: cls.module.AudioSegment.export(*args, format="mp3", **kwargs),
+                "wav": lambda *args, **kwargs: cls.module.AudioSegment.export(*args, format="wav", **kwargs),
+                "ogg": lambda *args, **kwargs: cls.module.AudioSegment.export(*args, format="ogg", **kwargs),
+                "flv": lambda *args, **kwargs: cls.module.AudioSegment.export(*args, format="flv", **kwargs)
             }
         )
 
@@ -214,15 +217,16 @@ class Audio(Format):
 class Video(Format):
     formats = {"mp4", "mkv", "avi", "gif"}
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         import warnings
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             import moviepy.editor as edit
 
-        self.module = edit
-        self.readfuncs.update({extension: edit.VideoFileClip for extension in self.formats})
+        cls.module = edit
+        cls.readfuncs.update({extension: edit.VideoFileClip for extension in cls.formats})
 
     def read(self, **kwargs: Any) -> Any:
         out = self.readfuncs[self.file.extension](self.file.path, **kwargs)
@@ -233,13 +237,16 @@ class Video(Format):
 class Compressed(Format):
     formats = {"zip", "tar"}
 
-    def initialize(self) -> None:
-        self.readfuncs.update({"zip": zipfile.ZipFile, "tar": tarfile.TarFile})
-        self.writefuncs.update({"zip": self.file.settings.dirclass.compress})
+    @classmethod
+    def initialize(cls) -> None:
+        from pathmagic import Dir
+
+        cls.readfuncs.update({"zip": zipfile.ZipFile, "tar": tarfile.TarFile})
+        cls.writefuncs.update({"zip": Dir.compress})
 
     def read(self, **kwargs: Any) -> Dir:
         output = self.file.dir.newdir(self.file.prename)
-        with self.readfuncs[self.file.extension](self.file.path, **kwargs) as filehandle:
+        with self.readfuncs[self.file.extension](str(self.file), **kwargs) as filehandle:
             filehandle.extractall(path=output.path)
 
         return output
@@ -254,9 +261,10 @@ class Compressed(Format):
 class Link(Format):
     formats = {"lnk"}
 
-    def initialize(self) -> None:
-        self.readfuncs.update({"lnk": self._readlink})
-        self.writefuncs.update({"lnk": self._writelink})
+    @classmethod
+    def initialize(cls) -> None:
+        cls.readfuncs.update({"lnk": cls._readlink})
+        cls.writefuncs.update({"lnk": cls._writelink})
 
     def _readlink(self, linkpath: PathLike) -> PathLike:
         import win32com.client as win
@@ -293,12 +301,13 @@ class Serialized(Format):
         super().__init__(file=file)
         self.serializer = Serializer(file)
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         import dill
 
-        self.module = dill
-        self.readfuncs.update({"pkl": self.module.load})
-        self.writefuncs.update({"pkl": self.module.dump})
+        cls.module = dill
+        cls.readfuncs.update({"pkl": cls.module.load})
+        cls.writefuncs.update({"pkl": cls.module.dump})
 
     def read(self, **kwargs: Any) -> Any:
         return self.serializer.deserialize(**kwargs)
@@ -310,13 +319,14 @@ class Serialized(Format):
 class Json(Format):
     formats = {"json"}
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         import json
 
-        self.module = json
-        type(self).namespace_cls = self._try_get_namespace_cls()
-        self.readfuncs.update({"json": self.module.load})
-        self.writefuncs.update({"json": self.module.dump})
+        cls.module = json
+        cls.namespace_cls = cls._try_get_namespace_cls()
+        cls.readfuncs.update({"json": cls.module.load})
+        cls.writefuncs.update({"json": cls.module.dump})
 
     def read(self, **kwargs) -> Any:
         try:
@@ -324,7 +334,7 @@ class Json(Format):
                 ret = self.readfuncs[self.file.extension](file)
                 return self.namespace_cls(ret) if self.namespace_cls is not None and isinstance(ret, dict) else ret
         except self.module.JSONDecodeError:
-            return Default(self.file).read() or None
+            return self.file.path.read_text() or None
 
     def write(self, item: Any, indent: int = 4, **kwargs) -> None:
         if self.namespace_cls is not None and isinstance(item, self.namespace_cls):
@@ -349,12 +359,13 @@ class MarkUp(Format):
         super().__init__(file)
         self.io = Default(file)
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         import bs4
 
-        self.module = bs4
-        self.readfuncs.update({extension: bs4.BeautifulSoup for extension in self.formats})
-        self.writefuncs.update({extension: io.TextIOWrapper for extension in self.formats})
+        cls.module = bs4
+        cls.readfuncs.update({extension: bs4.BeautifulSoup for extension in cls.formats})
+        cls.writefuncs.update({extension: io.TextIOWrapper for extension in cls.formats})
 
     def read(self, **kwargs: Any) -> Any:
         return Markup(self.io.read(), **kwargs)
@@ -371,7 +382,8 @@ class Default(Format):
         super().__init__(file=file)
         type(self).formats.add(file.extension)
 
-    def initialize(self) -> None:
+    @classmethod
+    def initialize(cls) -> None:
         pass
 
     def read(self, **kwargs: Any) -> Optional[str]:
