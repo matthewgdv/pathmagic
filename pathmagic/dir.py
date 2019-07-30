@@ -8,7 +8,7 @@ import zipfile
 from typing import Any, Collection, Dict, Iterator, List, Optional, Tuple, Union, cast
 from types import ModuleType
 
-from appdirs import user_data_dir
+from appdirs import user_data_dir, site_data_dir
 from maybe import Maybe
 from subtypes import Str
 
@@ -328,8 +328,11 @@ class Dir(BasePath):
         return cls(loc, settings=settings)
 
     @classmethod
-    def from_appdata(cls, appname: str, appauthor: str, version: str = None, roaming: bool = False, settings: Settings = None):
-        return cls(user_data_dir(appname=appname, appauthor=appauthor, version=version, roaming=roaming), settings=settings)
+    def from_appdata(cls, appname: str, appauthor: str, version: str = None, roaming: bool = False, user_specific: bool = True, settings: Settings = None):
+        if user_specific:
+            return cls(user_data_dir(appname=appname, appauthor=appauthor, version=version, roaming=roaming), settings=settings)
+        else:
+            return cls(site_data_dir(appname=appname, appauthor=appauthor, version=version), settings=settings)
 
     def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True) -> None:
         """
