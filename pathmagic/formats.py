@@ -376,7 +376,6 @@ class MarkUp(Format):
 
 class Default(Format):
     formats: Set[str] = set()
-    readfuncs = writefuncs = defaultdict(lambda: io.TextIOWrapper)  # type: ignore
 
     def __init__(self, file: File) -> None:
         super().__init__(file=file)
@@ -384,7 +383,7 @@ class Default(Format):
 
     @classmethod
     def initialize(cls) -> None:
-        pass
+        cls.readfuncs = cls.writefuncs = defaultdict(lambda: io.TextIOWrapper)  # type: ignore
 
     def read(self, **kwargs: Any) -> Optional[str]:
         try:
