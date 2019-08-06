@@ -100,12 +100,14 @@ class BasePath(ABC):
             raise FileExistsError(f"Path '{path}' is already this {type(self).__name__}'s path. Cannot copy or move a {type(self).__name__} to its own path.")
         else:
             if os.path.exists(path):
-                if self.settings.if_exists == BasePath.IfExists.ALLOW:
+                if self.settings.if_exists == IfExists.ALLOW:
                     pass
-                elif self.settings.if_exists == BasePath.IfExists.MAKE_COPY:
+                elif self.settings.if_exists == IfExists.MAKE_COPY:
                     raise NotImplementedError
-                elif self.settings.if_exists == BasePath.IfExists.FAIL:
-                    raise PermissionError(f"Path '{path}' already exists and current setting is '{self.settings.if_exists}'. To change the behaviour set the '{type(self).__name__}.settings.if_exists' attribute to one of: {BasePath.IfExists}.")
+                elif self.settings.if_exists == IfExists.FAIL:
+                    raise PermissionError(f"Path '{path}' already exists and current setting is '{self.settings.if_exists}'. To change this behaviour set the '{type(self).__name__}.settings.if_exists' attribute to one of: {BasePath.IfExists}.")
+                else:
+                    IfExists.raise_if_not_a_member(self.settings.if_exists)
 
     @classmethod
     def from_pathlike(cls, pathlike: PathLike, settings: Settings = None) -> BasePath:

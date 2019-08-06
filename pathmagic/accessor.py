@@ -57,9 +57,6 @@ class FileAccessor(Accessor):
     def __getitem__(self, key: str) -> File:
         return self._access(key)
 
-    def __setitem__(self, key: str, val: File) -> None:
-        super().__setitem__(key, val)
-
 
 class DirAccessor(Accessor):
     def __init__(self, parent: Dir):
@@ -68,9 +65,6 @@ class DirAccessor(Accessor):
 
     def __getitem__(self, key: str) -> Dir:
         return self._access(key)
-
-    def __setitem__(self, key: str, val: Dir) -> None:
-        super().__setitem__(key, val)
 
 
 class DotAccessor:
