@@ -50,7 +50,9 @@ class File(BasePath):
             return f"{type(self).__name__}(path={repr(self.path)}, deleted=True, lines=?)"
 
     def __len__(self) -> int:
-        if self.extension not in self._format.formats and not zipfile.is_zipfile(self.path) and not tarfile.is_tarfile(self.path):
+        from .formats import Default
+
+        if not isinstance(self._contents, str) and isinstance(self._format.format, Default):
             self.read()
 
         return 0 if not isinstance(self._contents, str) else self._contents.count("\n") + 1

@@ -375,7 +375,7 @@ class MarkUp(Format):
 
 
 class Default(Format):
-    formats: Set[str] = set()
+    formats: Set[str] = {"txt"}
 
     def __init__(self, file: File) -> None:
         super().__init__(file=file)
