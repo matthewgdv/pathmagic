@@ -6,8 +6,6 @@ from typing import Any, Callable, Dict, List, Union, TYPE_CHECKING
 
 from subtypes import Str
 
-from .basepath import BasePath
-
 if TYPE_CHECKING:
     from .dir import Dir
     from .file import File
@@ -39,7 +37,7 @@ class Accessor(ABC):
         return next(self.__iter)
 
     def __contains__(self, other: os.PathLike) -> bool:
-        with BasePath.cwd_context(self.parent):
+        with self.parent:
             return os.path.realpath(other) in self(full_path=True)
 
     def __getitem__(self, key: str) -> Union[File, Dir]:

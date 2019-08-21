@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import contextlib
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Iterator, Union, Type, TYPE_CHECKING
+from typing import Any, Union, Type, TYPE_CHECKING
 import pathlib
 
 from lazy_property import LazyProperty
@@ -109,28 +108,6 @@ class BasePath(ABC):
                 else:
                     IfExists.raise_if_not_a_member(self.settings.if_exists)
 
-    @classmethod
-    def from_pathlike(cls, pathlike: PathLike, settings: Settings = None) -> BasePath:
-        return pathlike if isinstance(pathlike, cls) else cls(path=pathlike, settings=settings)
-
-    @staticmethod
-    def chdir(path: PathLike) -> None:
-        """
-        Convenience staticmethod available to all Path objects for making calls to os.chdir without needing to import the os module.
-        Will change the current location of the Python interpreter to the specified path. If called from an object, this method will not affect that object in any way.
-        """
-        os.chdir(path)
-
-    @staticmethod
-    @contextlib.contextmanager
-    def cwd_context(path: PathLike) -> Iterator[None]:
-        current = os.getcwd()
-        try:
-            os.chdir(path)
-            yield None
-        finally:
-            os.chdir(current)
-
     def _get_settings(self) -> Settings:
         return Settings()
 
@@ -143,3 +120,7 @@ class BasePath(ABC):
         path = os.path.abspath(path)
         BasePath._prepare_dir_if_not_exists(os.path.dirname(path))
         pathlib.Path(path).touch()
+
+    @classmethod
+    def from_pathlike(cls, pathlike: PathLike, settings: Settings = None) -> BasePath:
+        return pathlike if isinstance(pathlike, cls) else cls(path=pathlike, settings=settings)

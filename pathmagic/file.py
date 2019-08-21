@@ -4,8 +4,6 @@ import os
 import shutil
 import subprocess
 import sys
-import tarfile
-import zipfile
 from typing import Any, TYPE_CHECKING
 from types import ModuleType
 import pathlib

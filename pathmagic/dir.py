@@ -9,6 +9,7 @@ from typing import Any, Collection, Dict, Iterator, List, Optional, Tuple, Union
 from types import ModuleType
 
 from appdirs import user_data_dir, site_data_dir
+from lazy_property import LazyProperty
 from maybe import Maybe
 from subtypes import Str
 
@@ -70,11 +71,15 @@ class Dir(BasePath):
         return ret
 
     def __iter__(self) -> Dir:
-        self.__iter = (pathlike for generator in (iter(self.dirs), iter(self.files)) for pathlike in generator)
+        return (pathlike for generator in (iter(self.dirs), iter(self.files)) for pathlike in generator)
+
+    def __enter__(self) -> Dir:
+        self._cwd_stack.append(os.getcwd())
+        os.chdir(self)
         return self
 
-    def __next__(self) -> Union[File, Dir]:
-        return next(self.__iter)
+    def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
+        os.chdir(self._cwd_stack.pop(-1))
 
     @property
     def path(self) -> pathlib.Path:
@@ -109,6 +114,10 @@ class Dir(BasePath):
     def contents(self) -> dict:
         """Return the Dir's contents as a dictionary with two keys, 'files', and 'dirs', which contain a list of the names of the files and dirs in this Dir, respectively. Read-only."""
         return {"files": self.files(), "dirs": self.dirs()}
+
+    @LazyProperty
+    def _cwd_stack(self) -> List[str]:
+        return []
 
     def open(self) -> Dir:
         """Call the default file system navigator on this Dir's path. Returns self."""
@@ -210,8 +219,7 @@ class Dir(BasePath):
         return self.settings.dirclass(self.path.joinpath(clean), settings=self.settings)
 
     def symlink_to(self, target: PathLike, name: str = None, target_is_directory: bool = True) -> None:
-        link = (self.newdir if target_is_directory else self.newfile)(Maybe(name).else_(os.path.basename(target))).delete()
-        pathlib.Path(link).symlink_to(target=target, target_is_directory=target_is_directory)
+        (self.newdir if target_is_directory else self.newfile)(Maybe(name).else_(os.path.basename(target))).delete().path.symlink_to(target=target, target_is_directory=target_is_directory)
 
     def seekfiles(self, depth: int = None, name: str = None, dirpath: str = None, contents: str = None, extensions: Collection[str] = None, re_flags: int = 0) -> Iterator[File]:
         """
