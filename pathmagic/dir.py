@@ -336,7 +336,7 @@ class Dir(BasePath):
         return cls(loc, settings=settings)
 
     @classmethod
-    def from_appdata(cls, appname: str, appauthor: str, version: str = None, roaming: bool = False, user_specific: bool = True, settings: Settings = None):
+    def from_appdata(cls, appname: str, appauthor: str = "pythondata", version: str = None, roaming: bool = False, user_specific: bool = True, settings: Settings = None):
         if user_specific:
             return cls(user_data_dir(appname=appname, appauthor=appauthor, version=version, roaming=roaming), settings=settings)
         else:
