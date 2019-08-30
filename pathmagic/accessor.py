@@ -30,8 +30,7 @@ class Accessor(ABC):
         return len(self._collection)
 
     def __iter__(self) -> Any:
-        self.__iter = (self[name] for name in self())
-        return self
+        return (self[name] for name in self())
 
     def __next__(self) -> Union[File, Dir]:
         return next(self.__iter)
