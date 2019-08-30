@@ -11,7 +11,7 @@ import pathlib
 from maybe import Maybe
 
 from .basepath import BasePath, PathLike, Settings
-from .formats import FormatHandler
+from .formats import FormatHandler, Default
 
 if TYPE_CHECKING:
     from .dir import Dir
@@ -35,11 +35,12 @@ class File(BasePath):
         self._contents: Any = None
         self._dir: Dir = None
 
-        self._format = FormatHandler(self)
         self.settings = Maybe(settings).else_(self._get_settings())
 
         self._prepare_file_if_not_exists(path)
         self._set_params(path, move=False)
+
+        self._format_handler = FormatHandler(self)
 
     def __repr__(self) -> str:
         try:
@@ -48,9 +49,7 @@ class File(BasePath):
             return f"{type(self).__name__}(path={repr(self.path)}, deleted=True, lines=?)"
 
     def __len__(self) -> int:
-        from .formats import Default
-
-        if not isinstance(self._contents, str) and isinstance(self._format.format, Default):
+        if isinstance(self._format_handler.format, Default):
             self.read()
 
         return 0 if not isinstance(self._contents, str) else self._contents.count("\n") + 1
@@ -59,11 +58,7 @@ class File(BasePath):
         return True if os.path.getsize(self) > 0 else False
 
     def __iter__(self) -> File:
-        self.__iter = iter(self.contents.split("\n"))
-        return self
-
-    def __next__(self) -> str:
-        return next(self.__iter)
+        return iter(self.contents.split("\n"))
 
     def __getitem__(self, key: int) -> str:
         return self.contents.split("\n")[key]
@@ -144,7 +139,7 @@ class File(BasePath):
         Return the File's contents as a string if it is not encoded, else attempt to return a useful Python object representing the file contents (e.g. Pandas DataFrame for tabular files, etc.).
         If provided, **kwargs will be passed on to whichever function will be used to read in the File's contents. Call the 'readhelp' method for that function's documentation.
         """
-        self._contents = self._format.read(**kwargs)
+        self._contents = self._format_handler.read(**kwargs)
         return self._contents
 
     def readhelp(self) -> None:
@@ -152,11 +147,11 @@ class File(BasePath):
         Print help documentation for the underlying reader function that is implicitly called when reading from this file type or accessing the 'contents' property.
         Any '**kwargs' passed to this File's 'read' method will be passed on to the underlying reader function. Do not resupply this File's path as a kwarg.
         """
-        self._format.readhelp()
+        self._format_handler.readhelp()
 
     def write(self, val: Any, **kwargs: Any) -> File:
         """Write to this File object's mapped file, overwriting anything already there. Returns self."""
-        self._format.write(item=val)
+        self._format_handler.write(item=val)
         return self
 
     def writehelp(self) -> None:
@@ -164,11 +159,11 @@ class File(BasePath):
         Print help documentation for the underlying writer function that is implicitly called when writing to this file type or setting to the 'contents' property.
         Any '**kwargs' passed to this File's 'write' method will be passed on to the underlying writer function. Do not resupply this File's path as a kwarg.
         """
-        self._format.writehelp()
+        self._format_handler.writehelp()
 
     def append(self, val: str) -> File:
         """Write to the end of this File object's mapped file, leaving any existing text intact. Returns self."""
-        self._format.append(text=val)
+        self._format_handler.append(text=val)
         return self
 
     def open(self, app: str = None) -> File:

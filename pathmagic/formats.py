@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import io
 import tarfile
 import zipfile
 from abc import ABCMeta
@@ -30,23 +29,21 @@ class FormatHandler:
 
     def __init__(self, file: File):
         self.file = file
-        self.read_kwargs = self.write_kwargs = {}  # type: Dict[str, Any]
         self.format: Format = None
+
+        if self.file.extension not in self.formats:
+            self._ensure_format()
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(format={type(self.format).__name__ if self.format is not None else None}, file={self.file})"
 
     def read(self, **kwargs: Any) -> Any:
-        self.read_kwargs = kwargs if kwargs else self.read_kwargs
         self._ensure_format()
-
-        return self.format.read(**self.read_kwargs)
+        return self.format.read(**kwargs)
 
     def write(self, item: Any, **kwargs: Any) -> Any:
-        self.write_kwargs = kwargs if kwargs else self.write_kwargs
         self._ensure_format()
-
-        return self.format.write(item=item, **self.write_kwargs)
+        return self.format.write(item=item, **kwargs)
 
     def append(self, text: str) -> None:
         self._ensure_format()
@@ -365,7 +362,7 @@ class MarkUp(Format):
 
         cls.module = bs4
         cls.readfuncs.update({extension: bs4.BeautifulSoup for extension in cls.formats})
-        cls.writefuncs.update({extension: io.TextIOWrapper for extension in cls.formats})
+        cls.writefuncs.update({extension: open for extension in cls.formats})
 
     def read(self, **kwargs: Any) -> Any:
         return Markup(self.io.read(), **kwargs)
@@ -375,23 +372,24 @@ class MarkUp(Format):
 
 
 class Default(Format):
-    formats: Set[str] = {"txt"}
+    formats: Set[str] = {}
 
     def __init__(self, file: File) -> None:
         super().__init__(file=file)
-        type(self).formats.add(file.extension)
 
     @classmethod
     def initialize(cls) -> None:
-        cls.readfuncs = cls.writefuncs = defaultdict(lambda: io.TextIOWrapper)  # type: ignore
+        cls.readfuncs = cls.writefuncs = defaultdict(lambda: open)  # type: ignore
 
     def read(self, **kwargs: Any) -> Optional[str]:
         try:
-            with open(self.file, encoding="utf-8", **kwargs) as filehandle:
+            kwargs = kwargs if kwargs else {"encoding": "utf-8"}
+            with open(self.file, **kwargs) as filehandle:
                 return filehandle.read()
         except UnicodeDecodeError:
             return None
 
     def write(self, item: str, append: bool = False, **kwargs: Any) -> None:
-        with open(self.file, "a" if append else "w", encoding="utf-8", **kwargs) as filehandle:
+        kwargs = kwargs if kwargs else {"mode": "a" if append else "w", "encoding": "utf-8"}
+        with open(self.file, **kwargs) as filehandle:
             filehandle.write(str(item))
