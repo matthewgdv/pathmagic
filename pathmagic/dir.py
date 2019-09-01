@@ -331,16 +331,24 @@ class Dir(BasePath):
         return cls.from_home(settings=settings).d.desktop
 
     @classmethod
+    def from_cwd(cls, settings: Settings = None) -> Dir:
+        return cls(os.getcwd(), settings=settings)
+
+    @classmethod
+    def from_root(cls, settings: Settings = None) -> Dir:
+        return cls(os.path.abspath(os.sep), settings=settings)
+
+    @classmethod
     def from_package(cls, package: ModuleType, settings: Settings = None) -> Dir:
         loc, = package.__spec__.submodule_search_locations
         return cls(loc, settings=settings)
 
     @classmethod
-    def from_appdata(cls, appname: str, appauthor: str = "pythondata", version: str = None, roaming: bool = False, user_specific: bool = True, settings: Settings = None):
-        if user_specific:
-            return cls(user_data_dir(appname=appname, appauthor=appauthor, version=version, roaming=roaming), settings=settings)
+    def from_appdata(cls, app_name: str, app_author: str = "pythondata", version: str = None, roaming: bool = False, systemwide: bool = False, settings: Settings = None):
+        if systemwide:
+            return cls(site_data_dir(appname=app_name, appauthor=app_author, version=version), settings=settings)
         else:
-            return cls(site_data_dir(appname=appname, appauthor=appauthor, version=version), settings=settings)
+            return cls(user_data_dir(appname=app_name, appauthor=app_author, version=version, roaming=roaming), settings=settings)
 
     def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True) -> None:
         """
