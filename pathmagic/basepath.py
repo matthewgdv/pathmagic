@@ -119,7 +119,13 @@ class BasePath(ABC):
     def _prepare_file_if_not_exists(path: PathLike) -> None:
         path = os.path.abspath(path)
         BasePath._prepare_dir_if_not_exists(os.path.dirname(path))
-        pathlib.Path(path).touch()
+
+        try:
+            with open(path, "a"):
+                pass
+        except PermissionError as ex:
+            if not pathlib.Path(path).is_file():
+                raise ex
 
     @classmethod
     def from_pathlike(cls, pathlike: PathLike, settings: Settings = None) -> BasePath:
