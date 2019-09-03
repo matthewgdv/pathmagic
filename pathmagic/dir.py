@@ -385,7 +385,8 @@ class Dir(BasePath):
         if name not in self._files:
             self._synchronize_files()
         if name in self._files:
-            return Maybe(self._files[name]).else_(self.newfile(name))
+            file = self._files[name]
+            return file if file is not None else self.newfile(name)
         else:
             raise FileNotFoundError(f"File '{name}' not found in '{self}'")
 
@@ -393,7 +394,8 @@ class Dir(BasePath):
         if name not in self._dirs:
             self._synchronize_dirs()
         if name in self._dirs:
-            return Maybe(self._dirs[name]).else_(self.newdir(name))
+            folder = self._dirs[name]
+            return folder if folder is not None else self.newdir(name)
         else:
             raise FileNotFoundError(f"Dir '{name}' not found in '{self}'")
 

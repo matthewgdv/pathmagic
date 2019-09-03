@@ -222,11 +222,8 @@ class File(BasePath):
         self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False)
         return self
 
-    def delete(self, backup: bool = False) -> File:
+    def delete(self) -> File:
         """Delete this File's object's mapped file from the file system. The File object will persist and may still be used."""
-        if backup:
-            self.read()
-
         os.remove(self)
         return self
 
