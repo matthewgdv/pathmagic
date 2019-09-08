@@ -14,11 +14,11 @@ from maybe import Maybe
 from subtypes import Str
 
 from .accessor import FileAccessor, DirAccessor, FileDotAccessor, DirDotAccessor
-from .basepath import BasePath, PathLike, Settings
+from .path import Path, PathLike, Settings
 from .file import File
 
 
-class Dir(BasePath):
+class Dir(Path):
     """
     ORM class for manipulating directories in the filesystem.
 
@@ -70,7 +70,7 @@ class Dir(BasePath):
             ret = ret.dir
         return ret
 
-    def __iter__(self) -> Dir:
+    def __iter__(self) -> Iterator[Union[File, Dir]]:
         return (pathlike for generator in (iter(self.dirs), iter(self.files)) for pathlike in generator)
 
     def __enter__(self) -> Dir:
@@ -132,7 +132,7 @@ class Dir(BasePath):
 
     def rename(self, name: str) -> Dir:
         """Rename this Dir to the specified value. Returns self."""
-        self._set_params(self.dir.path.joinpath(name))
+        self._set_params(str(self.dir.path.joinpath(name)))
         return self
 
     def newrename(self, name: str) -> Dir:
@@ -219,7 +219,8 @@ class Dir(BasePath):
         return self.settings.dirclass(self.path.joinpath(clean), settings=self.settings)
 
     def symlink_to(self, target: PathLike, name: str = None, target_is_directory: bool = True) -> None:
-        (self.newdir if target_is_directory else self.newfile)(Maybe(name).else_(os.path.basename(target))).delete().path.symlink_to(target=target, target_is_directory=target_is_directory)
+        func: Any = self.newdir if target_is_directory else self.newfile
+        func(Maybe(name).else_(os.path.basename(target))).delete().path.symlink_to(target=target, target_is_directory=target_is_directory)
 
     def seekfiles(self, depth: int = None, name: str = None, dirpath: str = None, contents: str = None, extensions: Collection[str] = None, re_flags: int = 0) -> Iterator[File]:
         """
@@ -344,7 +345,7 @@ class Dir(BasePath):
         return cls(loc, settings=settings)
 
     @classmethod
-    def from_appdata(cls, app_name: str, app_author: str = "pythondata", version: str = None, roaming: bool = False, systemwide: bool = False, settings: Settings = None):
+    def from_appdata(cls, app_name: str, app_author: str = "pythondata", version: str = None, roaming: bool = False, systemwide: bool = False, settings: Settings = None) -> Dir:
         if systemwide:
             return cls(site_data_dir(appname=app_name, appauthor=app_author, version=version), settings=settings)
         else:
@@ -402,7 +403,7 @@ class Dir(BasePath):
     def _set_params(self, path: str, move: bool = True) -> None:
         path_obj = pathlib.Path(os.path.abspath(path))
         name, new_dirpath = os.path.basename(path_obj), os.path.dirname(path_obj)
-        directory = None if self._dir is None else (self.settings.dirclass(new_dirpath, settings=self.settings) if self.dir != new_dirpath else self.dir)
+        directory = None if self._dir is None else (self.settings.dirclass(new_dirpath, settings=self.settings) if str(self.dir) != new_dirpath else self.dir)
 
         if move:
             shutil.move(self, path_obj)

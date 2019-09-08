@@ -4,20 +4,20 @@ import os
 import shutil
 import subprocess
 import sys
-from typing import Any, TYPE_CHECKING
+from typing import Any, Iterator, TYPE_CHECKING
 from types import ModuleType
 import pathlib
 
 from maybe import Maybe
 
-from .basepath import BasePath, PathLike, Settings
+from .path import Path, PathLike, Settings
 from .formats import FormatHandler, Default
 
 if TYPE_CHECKING:
     from .dir import Dir
 
 
-class File(BasePath):
+class File(Path):
     """
     ORM class for manipulating files in the filesystem.
 
@@ -57,11 +57,11 @@ class File(BasePath):
     def __bool__(self) -> bool:
         return True if os.path.getsize(self) > 0 else False
 
-    def __iter__(self) -> File:
+    def __iter__(self) -> Iterator[str]:
         return iter(self.contents.split("\n"))
 
     def __getitem__(self, key: int) -> str:
-        return self.contents.split("\n")[key]
+        return str(self.contents.split("\n")[key])
 
     def __setitem__(self, key: int, val: str) -> None:
         aslist = self.contents.split("\n")
@@ -134,7 +134,7 @@ class File(BasePath):
     def contents(self, val: Any) -> None:
         self.write(val)
 
-    def read(self, **kwargs: Any) -> str:
+    def read(self, **kwargs: Any) -> Any:
         """
         Return the File's contents as a string if it is not encoded, else attempt to return a useful Python object representing the file contents (e.g. Pandas DataFrame for tabular files, etc.).
         If provided, **kwargs will be passed on to whichever function will be used to read in the File's contents. Call the 'readhelp' method for that function's documentation.

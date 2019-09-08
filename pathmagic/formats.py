@@ -12,7 +12,7 @@ import pathlib
 from maybe import Maybe
 from subtypes import Enum, Str, Markup, Frame
 
-from .basepath import PathLike
+from .path import PathLike
 
 if TYPE_CHECKING:
     from .dir import Dir
@@ -99,14 +99,6 @@ class Format(metaclass=FormatMeta):
         if not type(self).initialized:
             self.initialize()
             type(self).initialized = True
-
-    @property
-    def module(self) -> Any:
-        return type(self)._module
-
-    @module.setter
-    def module(self, val: Any) -> None:
-        type(self)._module = val
 
     @classmethod
     def initialize(cls) -> None:
@@ -315,6 +307,7 @@ class Serialized(Format):
 
 class Json(Format):
     formats = {"json"}
+    namespace_cls = dict
 
     @classmethod
     def initialize(cls) -> None:
@@ -322,10 +315,10 @@ class Json(Format):
 
         cls.module = json
         cls.namespace_cls = cls._try_get_namespace_cls()
-        cls.readfuncs.update({"json": cls.module.load})
-        cls.writefuncs.update({"json": cls.module.dump})
+        cls.readfuncs.update({"json": json.load})
+        cls.writefuncs.update({"json": json.dump})
 
-    def read(self, namespace: bool = True, **kwargs) -> Any:
+    def read(self, namespace: bool = True, **kwargs: Any) -> Any:
         try:
             with open(self.file) as file:
                 ret = self.readfuncs[self.file.extension](file, **kwargs)
@@ -333,7 +326,7 @@ class Json(Format):
         except self.module.JSONDecodeError:
             return self.file.path.read_text() or None
 
-    def write(self, item: Any, indent: int = 4, **kwargs) -> None:
+    def write(self, item: Any, indent: int = 4, **kwargs: Any) -> None:
         with open(self.file, "w") as file:
             self.writefuncs[self.file.extension](item, file, indent=indent, **kwargs)
 
@@ -369,20 +362,20 @@ class MarkUp(Format):
 
 
 class Default(Format):
-    formats: Set[str] = {}
+    formats: Set[str] = set()
 
     def __init__(self, file: File) -> None:
         super().__init__(file=file)
 
     @classmethod
     def initialize(cls) -> None:
-        cls.readfuncs = cls.writefuncs = defaultdict(lambda: open)  # type: ignore
+        cls.readfuncs = cls.writefuncs = defaultdict(lambda: open)
 
     def read(self, **kwargs: Any) -> Optional[str]:
         try:
             kwargs = kwargs if kwargs else {"encoding": "utf-8"}
             with open(self.file, **kwargs) as filehandle:
-                return filehandle.read()
+                return str(filehandle.read())
         except UnicodeDecodeError:
             return None
 

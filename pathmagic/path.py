@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from abc import ABC, abstractmethod
 from typing import Any, Union, Type, TYPE_CHECKING
 import pathlib
 
@@ -34,7 +33,7 @@ class Settings:
         from .file import File
         from .dir import Dir
 
-        self.if_exists = Maybe(if_exists).else_(BasePath.DEFAULT_IF_EXISTS)
+        self.if_exists = Maybe(if_exists).else_(Path.DEFAULT_IF_EXISTS)
         self.lazy = Maybe(lazy_instanciation).else_(False if is_running_in_ipython() else True)
         self.fileclass, self.dirclass = Maybe(fileclass).else_(File), Maybe(dirclass).else_(Dir)
 
@@ -42,8 +41,10 @@ class Settings:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
 
 
-class BasePath(ABC):
+class Path(os.PathLike):
     """Abstract Base Class from which 'File' and 'Dir' objects derive."""
+
+    __subclasshook__ = object.__subclasshook__  # type:ignore
 
     IfExists = IfExists
     DEFAULT_IF_EXISTS = IfExists.FAIL
@@ -51,9 +52,9 @@ class BasePath(ABC):
     if_exists: bool
     _path: pathlib.Path
 
-    @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any):
-        pass
+        self.settings = Settings()
+        raise TypeError(f"Cannot instanciate object of abstract type {type(self).__name__}. Please instanciate one of its subclasses.")
 
     def __str__(self) -> str:
         return str(self.path)
@@ -65,10 +66,10 @@ class BasePath(ABC):
         return id(self)
 
     def __eq__(self, other: Any) -> bool:
-        return os.fspath(self) == os.fspath(other)
+        return bool(os.fspath(self) == os.fspath(other))
 
     def __ne__(self, other: Any) -> bool:
-        return os.fspath(self) != os.fspath(other)
+        return bool(os.fspath(self) != os.fspath(other))
 
     def __lt__(self, other: Any) -> bool:
         return os.fspath(other) in os.fspath(self)
@@ -104,7 +105,7 @@ class BasePath(ABC):
                 elif self.settings.if_exists == IfExists.MAKE_COPY:
                     raise NotImplementedError
                 elif self.settings.if_exists == IfExists.FAIL:
-                    raise PermissionError(f"Path '{path}' already exists and current setting is '{self.settings.if_exists}'. To change this behaviour set the '{type(self).__name__}.settings.if_exists' attribute to one of: {BasePath.IfExists}.")
+                    raise PermissionError(f"Path '{path}' already exists and current setting is '{self.settings.if_exists}'. To change this behaviour set the '{type(self).__name__}.settings.if_exists' attribute to one of: {Path.IfExists}.")
                 else:
                     IfExists.raise_if_not_a_member(self.settings.if_exists)
 
@@ -118,7 +119,7 @@ class BasePath(ABC):
     @staticmethod
     def _prepare_file_if_not_exists(path: PathLike) -> None:
         path = os.path.abspath(path)
-        BasePath._prepare_dir_if_not_exists(os.path.dirname(path))
+        Path._prepare_dir_if_not_exists(os.path.dirname(path))
 
         try:
             with open(path, "a"):
@@ -128,5 +129,5 @@ class BasePath(ABC):
                 raise ex
 
     @classmethod
-    def from_pathlike(cls, pathlike: PathLike, settings: Settings = None) -> BasePath:
+    def from_pathlike(cls, pathlike: PathLike, settings: Settings = None) -> Path:
         return pathlike if isinstance(pathlike, cls) else cls(path=pathlike, settings=settings)

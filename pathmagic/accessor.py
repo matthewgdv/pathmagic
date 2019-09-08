@@ -32,9 +32,6 @@ class Accessor(ABC):
     def __iter__(self) -> Any:
         return (self[name] for name in self())
 
-    def __next__(self) -> Union[File, Dir]:
-        return next(self.__iter)
-
     def __contains__(self, other: os.PathLike) -> bool:
         with self.parent:
             return os.path.realpath(other) in self(full_path=True)
