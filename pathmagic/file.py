@@ -219,7 +219,7 @@ class File(Path):
 
     def moveto(self, directory: Dir) -> File:
         """Move this File to the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns self."""
-        self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False)
+        self.settings.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False)
         return self
 
     def delete(self) -> File:
