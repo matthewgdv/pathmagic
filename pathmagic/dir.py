@@ -99,7 +99,7 @@ class Dir(Path):
 
     @dir.setter
     def dir(self, val: Dir) -> None:
-        self.dirclass(val)._bind(self, preserve_original=False)
+        self.settings.dirclass(val)._bind(self, preserve_original=False)
 
     @property
     def name(self) -> str:
@@ -152,7 +152,7 @@ class Dir(Path):
 
     def newcopyto(self, directory: PathLike) -> Dir:
         """Create a new copy of this Dir within the specified path. If passed an existing Dir, both objects will implicitly call acquire references to each other. Otherwise it will instantiate a new Dir first. Returns the copy."""
-        parent = self.dirclass.from_pathlike(directory, settings=self.settings)
+        parent = self.settings.dirclass.from_pathlike(directory, settings=self.settings)
         parent._bind(self)
         return parent.dirs[self.name]
 
@@ -169,7 +169,7 @@ class Dir(Path):
 
     def moveto(self, directory: PathLike) -> Dir:
         """Move this Dir to the specified Dir object. If passed an existing Dir, both objects will implicitly call acquire references to each other. Returns self."""
-        self.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False)
+        self.settings.dirclass.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False)
         return self
 
     def delete(self) -> Dir:
