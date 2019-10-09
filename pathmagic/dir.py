@@ -14,7 +14,7 @@ from maybe import Maybe
 from subtypes import Str
 
 from .accessor import FileAccessor, DirAccessor, FileDotAccessor, DirDotAccessor
-from .path import Path, PathLike, Settings
+from .path import Path, PathLike, Settings, is_running_in_ipython
 from .file import File
 
 
@@ -338,6 +338,10 @@ class Dir(Path):
     @classmethod
     def from_root(cls, settings: Settings = None) -> Dir:
         return cls(os.path.abspath(os.sep), settings=settings)
+
+    @classmethod
+    def from_main_dir(cls, settings: Settings = None) -> Dir:
+        return cls(File.from_main().dir, settings=settings) if not is_running_in_ipython() else cls(globals()["_dh"][0], settings=settings)
 
     @classmethod
     def from_package(cls, package: ModuleType, settings: Settings = None) -> Dir:
