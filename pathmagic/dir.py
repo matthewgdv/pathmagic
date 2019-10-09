@@ -340,7 +340,7 @@ class Dir(Path):
         return cls(os.path.abspath(os.sep), settings=settings)
 
     @classmethod
-    def from_main_dir(cls, settings: Settings = None) -> Dir:
+    def from_main(cls, settings: Settings = None) -> Dir:
         return cls(File.from_main().dir, settings=settings) if not is_running_in_ipython() else cls(globals()["_dh"][0], settings=settings)
 
     @classmethod
