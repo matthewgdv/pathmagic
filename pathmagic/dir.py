@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import pathlib
 import shutil
 import subprocess
@@ -341,7 +342,7 @@ class Dir(Path):
 
     @classmethod
     def from_main(cls, settings: Settings = None) -> Dir:
-        return cls(File.from_main().dir, settings=settings) if not is_running_in_ipython() else cls(globals()["_dh"][0], settings=settings)
+        return cls(File.from_main().dir, settings=settings) if not is_running_in_ipython() else cls(sys.modules["__main__"]._dh[0], settings=settings)
 
     @classmethod
     def from_package(cls, package: ModuleType, settings: Settings = None) -> Dir:
