@@ -307,7 +307,7 @@ class Dir(Path):
         with zipfile.ZipFile(outfile, mode="w", compression=zipfile.ZIP_DEFLATED, **kwargs) as zipper:
             for directory, dirs, files in self.walk():
                 for path in (item for itemtype in (dirs, files) for item in cast(Iterator, itemtype)):
-                    zipper.write(path, str(path)[len(str(self))+1:])
+                    zipper.write(path, str(Str(path).slice.after(Str(self.dir).re.escape())))
 
         return outfile
 
