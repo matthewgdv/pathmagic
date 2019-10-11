@@ -29,13 +29,13 @@ class IfExists(Enum):
 
 
 class Settings:
-    def __init__(self, if_exists: str = None, lazy_instanciation: bool = None, fileclass: Type[File] = None, dirclass: Type[Dir] = None) -> None:
+    def __init__(self, if_exists: str = None, lazy_instanciation: bool = None, file_class: Type[File] = None, dir_class: Type[Dir] = None) -> None:
         from .file import File
         from .dir import Dir
 
         self.if_exists = Maybe(if_exists).else_(Path.DEFAULT_IF_EXISTS)
         self.lazy = Maybe(lazy_instanciation).else_(False if is_running_in_ipython() else True)
-        self.fileclass, self.dirclass = Maybe(fileclass).else_(File), Maybe(dirclass).else_(Dir)
+        self.file_class, self.dir_class = Maybe(file_class).else_(File), Maybe(dir_class).else_(Dir)
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"

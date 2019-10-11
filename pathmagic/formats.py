@@ -52,13 +52,13 @@ class FormatHandler:
 
         self.format.write(item=text, append=True)
 
-    def readhelp(self) -> None:
+    def read_help(self) -> None:
         self._ensure_format()
-        self.format.readhelp()
+        self.format.read_help()
 
-    def writehelp(self) -> None:
+    def write_help(self) -> None:
         self._ensure_format()
-        self.format.writehelp()
+        self.format.write_help()
 
     def _ensure_format(self) -> None:
         if self.format is None or self.file.extension not in self.format.formats:
@@ -105,15 +105,15 @@ class Format(metaclass=FormatMeta):
         raise RuntimeError("Must provide an implementation of Format.initialize(), which will only be called the first time the Format is instanciated. This method should import expensive modules (if needed) and update the Format.readfuncs and Format.writefuncs dictionaries.")
 
     def read(self, **kwargs: Any) -> Any:
-        return self.readfuncs[self.file.extension](self.file.path, **kwargs)
+        return self.readfuncs[self.file.extension](str(self.file), **kwargs)
 
-    def readhelp(self) -> None:
+    def read_help(self) -> None:
         help(self.readfuncs[self.file.extension])
 
     def write(self, item: Any, **kwargs: Any) -> None:
-        self.writefuncs[self.file.extension](item, self.file.path, **kwargs)
+        self.writefuncs[self.file.extension](item, str(self.file), **kwargs)
 
-    def writehelp(self) -> None:
+    def write_help(self) -> None:
         help(self.writefuncs[self.file.extension])
 
 
@@ -139,10 +139,10 @@ class Tabular(Format):
         cls.readfuncs.update({"xlsx": Frame.from_excel, "csv": Frame.from_csv})
         cls.writefuncs.update({"xlsx": Frame.to_excel, "csv": Frame.to_csv})
 
-    def readhelp(self) -> None:
+    def read_help(self) -> None:
         help({"xlsx": self.module.read_excel, "csv": self.module.read_csv}[self.file.extension])
 
-    def writehelp(self) -> None:
+    def write_help(self) -> None:
         help({"xlsx": self.module.DataFrame.to_excel, "csv": self.module.DataFrame.to_csv}[self.file.extension])
 
 
@@ -171,7 +171,7 @@ class Image(Format):
         cls.writefuncs.update({extension: cls.module.Image.save for extension in cls.formats})
 
     def write(self, item: Any, **kwargs: Any) -> None:
-        self.writefuncs[self.file.extension](item.convert("RGB"), self.file.path, **kwargs)
+        self.writefuncs[self.file.extension](item.convert("RGB"), str(self.file), **kwargs)
 
 
 class Audio(Format):
@@ -199,7 +199,7 @@ class Audio(Format):
             }
         )
 
-    def writehelp(self) -> None:
+    def write_help(self) -> None:
         help(self.module.AudioSegment.export)
 
 
@@ -218,7 +218,7 @@ class Video(Format):
         cls.readfuncs.update({extension: edit.VideoFileClip for extension in cls.formats})
 
     def read(self, **kwargs: Any) -> Any:
-        out = self.readfuncs[self.file.extension](self.file.path, **kwargs)
+        out = self.readfuncs[self.file.extension](str(self.file), **kwargs)
         out._repr_html_ = MethodType(lambda this: this.ipython_display()._data_and_metadata(), out)
         return out
 
@@ -234,7 +234,7 @@ class Compressed(Format):
         cls.writefuncs.update({"zip": Dir.compress})
 
     def read(self, **kwargs: Any) -> Dir:
-        output = self.file.dir.newdir(self.file.prename)
+        output = self.file.parent.new_dir(self.file.stem)
         with self.readfuncs[self.file.extension](str(self.file), **kwargs) as filehandle:
             filehandle.extractall(path=output.path)
 
@@ -243,7 +243,7 @@ class Compressed(Format):
     def write(self, item: Dir, **kwargs: Any) -> None:
         item.compress(**kwargs)
 
-    def writehelp(self) -> None:
+    def write_help(self) -> None:
         help({"zip": zipfile.ZipFile.write}[self.file.extension])
 
 
@@ -263,9 +263,9 @@ class Link(Format):
         path = pathlib.Path(shortcut.Targetpath)
 
         if path.is_file():
-            constructor = self.file.settings.fileclass
+            constructor = self.file.settings.file_class
         elif path.is_dir():
-            constructor = self.file.settings.dirclass
+            constructor = self.file.settings.dir_class
         else:
             raise RuntimeError(f"Unrecognized path type of shortcut target: '{shortcut.Targetpath}'. Must be file or directory.")
 

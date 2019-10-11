@@ -24,7 +24,7 @@ class Accessor(ABC):
 
     def __call__(self, full_path: bool = False) -> List[str]:
         self._sync()
-        return [filename if not full_path else os.path.join(self.parent.path, filename) for filename in self._collection]
+        return [filename if not full_path else os.path.join(self.parent, filename) for filename in self._collection]
 
     def __len__(self) -> int:
         return len(self._collection)
@@ -80,6 +80,7 @@ class DotAccessor:
         if name.startswith("__"):
             raise AttributeError(name)
         else:
+            print(name)
             names = self._mappings.get(name)
             if names is None:
                 self._accessor._sync()
