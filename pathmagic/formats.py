@@ -20,18 +20,19 @@ if TYPE_CHECKING:
 
 
 class FileFormats(Enum):
-    pass
+    """An Enum holding references to all file formats (and file extensions) currently registered to the FormatHandler."""
 
 
 class FormatHandler:
-    formats: Set[str] = set()
+    """A class to manage file formats and react accordingly by file extension when reading and writing to/from files."""
+    extensions: Set[str] = set()
     mappings: Dict[str, Type[Format]] = {}
 
     def __init__(self, file: File):
         self.file = file
         self.format: Format = None
 
-        if self.file.extension not in self.formats:
+        if self.file.extension not in self.extensions:
             self._ensure_format()
 
     def __repr__(self) -> str:
@@ -61,7 +62,7 @@ class FormatHandler:
         self.format.write_help()
 
     def _ensure_format(self) -> None:
-        if self.format is None or self.file.extension not in self.format.formats:
+        if self.format is None or self.file.extension not in self.format.extensions:
             try:
                 self.format = self.mappings.get(self.file.extension, Default)(self.file)
             except ImportError as ex:
@@ -69,9 +70,9 @@ class FormatHandler:
 
     @classmethod
     def add_format(cls, formatter_class: Type[Format]) -> None:
-        cls.formats.update(Maybe(formatter_class.formats).else_(set()))
-        cls.mappings.update({extension: formatter_class for extension in Maybe(formatter_class.formats).else_({})})
-        FileFormats.extend_enum(formatter_class.__name__, Enum(formatter_class.__name__, {str(Str(extension).case.constant): extension for extension in formatter_class.formats}))
+        cls.extensions.update(Maybe(formatter_class.extensions).else_(set()))
+        cls.mappings.update({extension: formatter_class for extension in Maybe(formatter_class.extensions).else_({})})
+        FileFormats.extend_enum(formatter_class.__name__, Enum(formatter_class.__name__, {str(Str(extension).case.constant): extension for extension in formatter_class.extensions}))
 
 
 class FormatMeta(ABCMeta):
@@ -80,14 +81,20 @@ class FormatMeta(ABCMeta):
 
         cls.readfuncs, cls.writefuncs = {}, {}
 
-        if cls.formats:
+        if cls.extensions:
             FormatHandler.add_format(cls)
 
         return cls
 
 
 class Format(metaclass=FormatMeta):
-    formats: Set[str] = None
+    """
+    An abstract base class representing a file format. Descendants must provide a 'Format.extensions' class attribute (a set of file extensions), and must update the
+    'Format.readfuncs' and 'Format.writefuncs' dictionaries to teach the class how to read from and write to files by extension.
+    The Format.initialize() classmethod must be overriden, and the Format.read(), Format.write(), Format.read_help(), and Format.write_help() methods may also be overriden
+    in situations where simply registering the currect callback to the 'Format.readfuncs' and 'Format.writefuncs' dicts is not enough (such as when the callback doesn't have the correct signature).
+    """
+    extensions: Set[str] = None
     readfuncs = writefuncs = None  # type: Dict[str, Callable]
 
     initialized = False
@@ -118,7 +125,7 @@ class Format(metaclass=FormatMeta):
 
 
 class Pdf(Format):
-    formats = {"pdf"}
+    extensions = {"pdf"}
 
     @classmethod
     def initialize(cls) -> None:
@@ -129,7 +136,7 @@ class Pdf(Format):
 
 
 class Tabular(Format):
-    formats = {"xlsx", "csv"}
+    extensions = {"xlsx", "csv"}
 
     @classmethod
     def initialize(cls) -> None:
@@ -147,7 +154,7 @@ class Tabular(Format):
 
 
 class Word(Format):
-    formats = {"docx"}
+    extensions = {"docx"}
 
     @classmethod
     def initialize(cls) -> None:
@@ -160,22 +167,22 @@ class Word(Format):
 
 
 class Image(Format):
-    formats = {"png", "jpg", "jpeg"}
+    extensions = {"png", "jpg", "jpeg"}
 
     @classmethod
     def initialize(cls) -> None:
         from PIL import Image
 
         cls.module = Image
-        cls.readfuncs.update({extension: cls.module.open for extension in cls.formats})
-        cls.writefuncs.update({extension: cls.module.Image.save for extension in cls.formats})
+        cls.readfuncs.update({extension: cls.module.open for extension in cls.extensions})
+        cls.writefuncs.update({extension: cls.module.Image.save for extension in cls.extensions})
 
     def write(self, item: Any, **kwargs: Any) -> None:
         self.writefuncs[self.file.extension](item.convert("RGB"), str(self.file), **kwargs)
 
 
 class Audio(Format):
-    formats = {"mp3", "wav", "ogg", "flv"}
+    extensions = {"mp3", "wav", "ogg", "flv"}
 
     @classmethod
     def initialize(cls) -> None:
@@ -204,7 +211,7 @@ class Audio(Format):
 
 
 class Video(Format):
-    formats = {"mp4", "mkv", "avi", "gif"}
+    extensions = {"mp4", "mkv", "avi", "gif"}
 
     @classmethod
     def initialize(cls) -> None:
@@ -215,7 +222,7 @@ class Video(Format):
             import moviepy.editor as edit
 
         cls.module = edit
-        cls.readfuncs.update({extension: edit.VideoFileClip for extension in cls.formats})
+        cls.readfuncs.update({extension: edit.VideoFileClip for extension in cls.extensions})
 
     def read(self, **kwargs: Any) -> Any:
         out = self.readfuncs[self.file.extension](str(self.file), **kwargs)
@@ -224,7 +231,7 @@ class Video(Format):
 
 
 class Compressed(Format):
-    formats = {"zip", "tar"}
+    extensions = {"zip", "tar"}
 
     @classmethod
     def initialize(cls) -> None:
@@ -248,7 +255,7 @@ class Compressed(Format):
 
 
 class Link(Format):
-    formats = {"lnk"}
+    extensions = {"lnk"}
 
     @classmethod
     def initialize(cls) -> None:
@@ -282,7 +289,7 @@ class Link(Format):
 
 
 class Serialized(Format):
-    formats = {"pkl"}
+    extensions = {"pkl"}
 
     def __init__(self, file: File) -> None:
         from miscutils import Serializer
@@ -306,7 +313,7 @@ class Serialized(Format):
 
 
 class Json(Format):
-    formats = {"json"}
+    extensions = {"json"}
     namespace_cls = dict
 
     @classmethod
@@ -340,7 +347,7 @@ class Json(Format):
 
 
 class MarkUp(Format):
-    formats = {"html", "xml"}
+    extensions = {"html", "xml"}
 
     def __init__(self, file: File) -> None:
         super().__init__(file)
@@ -351,8 +358,8 @@ class MarkUp(Format):
         import bs4
 
         cls.module = bs4
-        cls.readfuncs.update({extension: bs4.BeautifulSoup for extension in cls.formats})
-        cls.writefuncs.update({extension: open for extension in cls.formats})
+        cls.readfuncs.update({extension: bs4.BeautifulSoup for extension in cls.extensions})
+        cls.writefuncs.update({extension: open for extension in cls.extensions})
 
     def read(self, **kwargs: Any) -> Any:
         return Markup(self.io.read(), **kwargs)
@@ -362,7 +369,7 @@ class MarkUp(Format):
 
 
 class Default(Format):
-    formats: Set[str] = set()
+    extensions: Set[str] = set()
 
     def __init__(self, file: File) -> None:
         super().__init__(file=file)

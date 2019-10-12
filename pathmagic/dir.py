@@ -27,9 +27,6 @@ class Dir(Path):
 
     The len() represents the number of combined files and dirs, the str() returns the Dir's path, the bool() resolves to true if the Dir is not empty, and iteration yields the paths
     of all the contained File and Dir objects, one at a time. Changes to any object property (setting it) will be reflected in the file system.
-
-    The 'if_exists' attribute contols behaviour when copying or moving files into paths with existing file system objects, while using this object's properties and methods. The options
-    are listed in this class' 'IfExists' enumeration.
     """
 
     def __init__(self, path: PathLike = "", settings: Settings = None) -> None:
@@ -41,8 +38,8 @@ class Dir(Path):
 
         self.settings = Maybe(settings).else_(self._get_settings())
 
-        self._prepare_dir_if_not_exists(path)
         self._set_params(path, move=False)
+        self.create()
 
         self.files, self.dirs = FileAccessor(self), DirAccessor(self)
         self.f, self.d = FileDotAccessor(self.files), DirDotAccessor(self.dirs)
@@ -83,7 +80,7 @@ class Dir(Path):
 
     @property
     def path(self) -> pathlib.Path:
-        """Return or set the Dir's full path as a string. Implicitly calls the 'move' method."""
+        """Return or set the Dir's full path as a string. Implicitly calls the 'move' method when set."""
         return self._path
 
     @path.setter
@@ -92,7 +89,7 @@ class Dir(Path):
 
     @property
     def parent(self) -> Dir:
-        """Return or set the Dir's directory as a Dir object. Implicitly calls that Dir object's '_bind' method."""
+        """Return or set the Dir's parent directory as a Dir object."""
         if self._parent is None:
             self._parent = self.settings.dir_class(os.path.dirname(self.path), settings=self.settings)
         return self._parent
@@ -103,7 +100,7 @@ class Dir(Path):
 
     @property
     def name(self) -> str:
-        """Return or set the Dir's name. Implicitly calls the rename method."""
+        """Return or set the Dir's name. Implicitly calls the 'rename' method when set."""
         return self._name
 
     @name.setter
@@ -140,13 +137,13 @@ class Dir(Path):
         return self
 
     def new_copy_to(self, directory: PathLike) -> Dir:
-        """Create a new copy of this Dir within the specified path. If passed an existing Dir, both objects will implicitly call acquire references to each other. Otherwise it will instantiate a new Dir first. Returns the copy."""
+        """Create a new copy of this Dir within the specified path. If passed a Dir object, both objects will acquire references to each other. Returns the copy."""
         parent = self.settings.dir_class.from_pathlike(directory, settings=self.settings)
         parent._bind(self)
         return parent.dirs[self.name]
 
     def copy_to(self, directory: PathLike) -> Dir:
-        """Create a new copy of this Dir within the specified path. If passed an existing Dir, both objects will implicitly call acquire references to each other. Otherwise it will instantiate a new Dir first. Returns self."""
+        """Create a new copy of this Dir within the specified path. If passed a Dir object, both objects will acquire references to each other. Returns self."""
         self.new_copy_to(directory)
         return self
 
@@ -157,8 +154,13 @@ class Dir(Path):
         return self
 
     def move_to(self, directory: PathLike) -> Dir:
-        """Move this Dir to the specified Dir object. If passed an existing Dir, both objects will implicitly call acquire references to each other. Returns self."""
+        """Move this Dir to the specified path. If passed a Dir object, both objects will acquire references to each other. Returns self."""
         self.settings.dir_class.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False)
+        return self
+
+    def create(self) -> Dir:
+        """Create this Dir in the filesystem if it does not exist. This method is called implicitly during instanciation. Returns self."""
+        self._prepare_dir_if_not_exists(self.path)
         return self
 
     def delete(self) -> Dir:
@@ -200,16 +202,18 @@ class Dir(Path):
         return self._dirs[name]
 
     def join_file(self, path: PathLike) -> File:
+        """Join this path to a relative path ending in a file and return that path as a File object."""
         clean = os.fspath(path).strip("\\").strip("/")
         return self.settings.file_class(self.path.joinpath(clean), settings=self.settings)
 
     def join_dir(self, path: PathLike) -> Dir:
+        """Join this path to a relative path ending in a folder and return that path as a Dir object."""
         clean = os.fspath(path).strip("\\").strip("/")
         return self.settings.dir_class(self.path.joinpath(clean), settings=self.settings)
 
-    def symlink_to(self, target: PathLike, name: str = None, target_is_directory: bool = True) -> None:
-        func: Any = self.new_dir if target_is_directory else self.new_file
-        func(Maybe(name).else_(os.path.basename(target))).delete().path.symlink_to(target=target, target_is_directory=target_is_directory)
+    def symlink_to(self, target: PathLike, name: str = None) -> None:
+        """Create a symlink to the given target. If the name of the symlink is not given, the basename of the target will be used. """
+        pathlib.Path(self).parent.joinpath(Maybe(name).else_(os.path.basename(target))).symlink_to(target=target, target_is_directory=os.path.isdir(target))
 
     def seek_files(self, depth: int = None, name: str = None, parent_path: str = None, contents: str = None, extensions: Collection[str] = None, re_flags: int = 0) -> Iterator[File]:
         """
@@ -314,31 +318,38 @@ class Dir(Path):
 
     @classmethod
     def from_home(cls, settings: Settings = None) -> Dir:
+        """Create a Dir representing the HOME path."""
         return cls(pathlib.Path.home(), settings=settings)
 
     @classmethod
     def from_desktop(cls, settings: Settings = None) -> Dir:
+        """Create a Dir representing the desktop, which must be named 'Desktop' (case-sensitive) and exist within the HOME directory."""
         return cls.from_home(settings=settings).dirs["Desktop"]
 
     @classmethod
     def from_cwd(cls, settings: Settings = None) -> Dir:
+        """Create a Dir representing the current working directory."""
         return cls(os.getcwd(), settings=settings)
 
     @classmethod
     def from_root(cls, settings: Settings = None) -> Dir:
+        """Create a Dir representing the root of the current drive."""
         return cls(os.path.abspath(os.sep), settings=settings)
 
     @classmethod
     def from_main(cls, settings: Settings = None) -> Dir:
+        """Create a Dir representing the parent of the '__main__' module's path. This method will fail in circumstances where the '__file__' attribute of the '__main__' module is undefined."""
         return cls(File.from_main().parent, settings=settings) if not is_running_in_ipython() else cls(sys.modules["__main__"]._dh[0], settings=settings)
 
     @classmethod
     def from_package(cls, package: ModuleType, settings: Settings = None) -> Dir:
+        """Create a Dir representing a python package."""
         loc, = package.__spec__.submodule_search_locations
         return cls(loc, settings=settings)
 
     @classmethod
     def from_appdata(cls, app_name: str, app_author: str = "pythondata", version: str = None, roaming: bool = False, systemwide: bool = False, settings: Settings = None) -> Dir:
+        """Create a Dir within an application data storage location appropriate to the operating system in use."""
         if systemwide:
             return cls(site_data_dir(appname=app_name, appauthor=app_author, version=version), settings=settings)
         else:

@@ -29,6 +29,8 @@ class IfExists(Enum):
 
 
 class Settings:
+    """A Settings class for Path objects. Holds the constructors that Path objects will use when they need to instanciate relatives, as well as controlling other aspects of behaviour."""
+
     def __init__(self, if_exists: str = None, lazy_instanciation: bool = None, file_class: Type[File] = None, dir_class: Type[Dir] = None) -> None:
         from .file import File
         from .dir import Dir

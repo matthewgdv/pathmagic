@@ -37,8 +37,8 @@ class File(Path):
 
         self.settings = Maybe(settings).else_(self._get_settings())
 
-        self._prepare_file_if_not_exists(path)
         self._set_params(path, move=False)
+        self.create()
 
         self._format_handler = FormatHandler(self)
 
@@ -213,8 +213,13 @@ class File(Path):
         return self
 
     def move_to(self, directory: Dir) -> File:
-        """Move this File to the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns self."""
+        """Move this File to the specified path. If a Dir object is supplied, both objects will be acquire references to one another. Returns self."""
         self.settings.dir_class.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False)
+        return self
+
+    def create(self) -> File:
+        """Create this File in the filesystem if it does not exist. This method is called implicitly during instanciation. Returns self."""
+        self._prepare_file_if_not_exists(self.path)
         return self
 
     def delete(self) -> File:
@@ -230,10 +235,12 @@ class File(Path):
 
     @classmethod
     def from_main(cls, settings: Settings = None) -> File:
+        """Create a File representing the '__main__' module's path. This method will fail under circumstances that would cause the '__main__' module's path to be undefined, such as from within jupyter notebooks."""
         return cls(sys.modules["__main__"].__file__, settings=settings)
 
     @classmethod
     def from_resource(cls, package: ModuleType, name: str, extension: str = None, settings: Settings = None) -> File:
+        """Create a File representing a non-python resource file within a python package."""
         from .dir import Dir
         return Dir.from_package(package, settings=settings).new_file(name=name, extension=extension)
 

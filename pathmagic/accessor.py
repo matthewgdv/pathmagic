@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class Accessor(ABC):
-    """Utility class for managing item access to the underlying _files and _dirs attributes held by Dir objects."""
+    """Utility class for managing item access to the underlying files and dirs held by Dir objects."""
 
     def __init__(self, parent: Dir) -> None:
         self.parent = parent
@@ -44,6 +44,8 @@ class Accessor(ABC):
 
 
 class FileAccessor(Accessor):
+    """Utility class for managing item access to the underlying files held by Dir objects."""
+
     def __init__(self, parent: Dir):
         super().__init__(parent=parent)
         self._sync, self._access, self._collection = self.parent._synchronize_files, self.parent._access_files, self.parent._files
@@ -53,6 +55,8 @@ class FileAccessor(Accessor):
 
 
 class DirAccessor(Accessor):
+    """Utility class for managing item access to the underlying dirs held by Dir objects."""
+
     def __init__(self, parent: Dir):
         super().__init__(parent=parent)
         self._sync, self._access, self._collection = self.parent._synchronize_dirs, self.parent._access_dirs, self.parent._dirs
@@ -62,6 +66,7 @@ class DirAccessor(Accessor):
 
 
 class DotAccessor:
+    """Utility class for managing item access to the underlying files and dirs held by Dir objects using attribute access."""
     _strip_extension: bool = None
 
     def __init__(self, accessor: Accessor) -> None:
@@ -115,6 +120,7 @@ class DotAccessor:
 
 
 class FileDotAccessor(DotAccessor):
+    """Utility class for managing item access to the underlying files held by Dir objects using attribute access."""
     _strip_extension = True
 
     def __getattr__(self, attr: str) -> File:
@@ -122,6 +128,7 @@ class FileDotAccessor(DotAccessor):
 
 
 class DirDotAccessor(DotAccessor):
+    """Utility class for managing item access to the underlying dirs held by Dir objects using attribute access."""
     _strip_extension = False
 
     def __getattr__(self, attr: str) -> Dir:
