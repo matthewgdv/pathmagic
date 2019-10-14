@@ -85,7 +85,6 @@ class DotAccessor:
         if name.startswith("__"):
             raise AttributeError(name)
         else:
-            print(name)
             names = self._mappings.get(name)
             if names is None:
                 self._accessor._sync()
