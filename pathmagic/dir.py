@@ -226,7 +226,7 @@ class Dir(Path):
         for file in self.files:
             if (
                 (extensions is None or file.extension in extensions)
-                and (name is None or Str(file.prename).re.search(name, flags=re_flags))
+                and (name is None or Str(file.stem).re.search(name, flags=re_flags))
                 and (parent_path is None or Str(self).re.search(parent_path, flags=re_flags))
                 and (contents is None or (len(file) > 0 and Str(file.contents).re.search(contents, flags=re_flags)))
             ):
