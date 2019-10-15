@@ -239,7 +239,7 @@ class Dir(Path):
                 depth -= 1
 
         for directory in self.dirs:
-            yield from directory.seekfiles(depth=depth, name=name, parent_path=parent_path, contents=contents, extensions=extensions, re_flags=re_flags)
+            yield from directory.seek_files(depth=depth, name=name, parent_path=parent_path, contents=contents, extensions=extensions, re_flags=re_flags)
 
     def seek_dirs(self, depth: int = None, name: str = None, parent_path: str = None, contains_filename: str = None, contains_dirname: str = None, re_flags: int = 0) -> Iterator[Dir]:
         """
@@ -264,12 +264,12 @@ class Dir(Path):
                 depth -= 1
 
         for directory in self.dirs:
-            yield from directory.seekdirs(depth=depth, name=name, parent_path=parent_path, contains_filename=contains_filename, contains_dirname=contains_dirname, re_flags=re_flags)
+            yield from directory.seek_dirs(depth=depth, name=name, parent_path=parent_path, contains_filename=contains_filename, contains_dirname=contains_dirname, re_flags=re_flags)
 
     def walk(self, depth: int = None) -> Iterator[Tuple[Dir, DirAccessor, FileAccessor]]:
         """Iterate recursively over this Dir and all subdirs, yielding a 3-tuple of: Tuple[directory, directory.dirs, directory.files]."""
         yield self, self.dirs, self.files
-        yield from ((directory, directory.dirs, directory.files) for directory in self.seekdirs(depth=depth))
+        yield from ((directory, directory.dirs, directory.files) for directory in self.seek_dirs(depth=depth))
 
     def compare_files(self, other: Dir, include_unmatched: bool = False) -> Iterator[Tuple[File, File]]:
         """Yield 2-tuples of all files with matching names and extensions within this Dir, and some 'other' Dir."""
