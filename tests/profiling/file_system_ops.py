@@ -2,7 +2,7 @@ from pathmagic import Dir
 import os
 from miscutils import Profiler
 
-testdir = Dir.from_home().newdir("test")
+testdir = Dir.from_home().new_dir("test")
 testdir.settings.lazy = True
 run = 1000
 
@@ -11,7 +11,7 @@ print("pathmagic")
 
 with Profiler() as magic_create_profiler:
     for num in range(run):
-        testdir.newfile(f"test{num + 1}", "txt").write(f"Hi, I'm file number {num + 1}.")
+        testdir.new_file(f"test{num + 1}", "txt").write(f"Hi, I'm file number {num + 1}.")
 
 print(magic_create_profiler)
 
