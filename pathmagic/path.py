@@ -4,8 +4,6 @@ import os
 from typing import Any, Union, Type, TYPE_CHECKING
 import pathlib
 
-from lazy_property import LazyProperty
-
 from maybe import Maybe
 from subtypes import Enum
 
@@ -89,7 +87,7 @@ class Path(os.PathLike):
     def path(self) -> pathlib.Path:
         return self._path
 
-    @LazyProperty
+    @property
     def stat(self) -> os.stat_result:
         return os.stat(self)
 

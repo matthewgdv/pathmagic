@@ -29,7 +29,6 @@ setup(
         'bs4',
         'dill',
         'docx',
-        'lazy_property',
         'maybe-else',
         'moviepy',
         'pydub',

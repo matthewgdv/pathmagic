@@ -9,7 +9,6 @@ from typing import Any, Collection, Dict, Iterator, List, Optional, Tuple, Union
 from types import ModuleType
 
 from appdirs import user_data_dir, site_data_dir
-from lazy_property import LazyProperty
 from maybe import Maybe
 from subtypes import Str
 
@@ -35,6 +34,7 @@ class Dir(Path):
         self._parent: Dir = None
         self._files: Dict[str, Optional[File]] = {}
         self._dirs: Dict[str, Optional[Dir]] = {}
+        self._cwd_stack = []
 
         self.settings = Maybe(settings).else_(self._get_settings())
 
@@ -106,10 +106,6 @@ class Dir(Path):
     @name.setter
     def name(self, val: str) -> None:
         self.rename(val)
-
-    @LazyProperty
-    def _cwd_stack(self) -> List[str]:
-        return []
 
     def start(self) -> Dir:
         """Call the default file system navigator on this Dir's path. Returns self."""
