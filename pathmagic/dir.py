@@ -209,7 +209,7 @@ class Dir(Path):
 
     def symlink_to(self, target: PathLike, name: str = None) -> None:
         """Create a symlink to the given target. If the name of the symlink is not given, the basename of the target will be used. """
-        pathlib.Path(self).parent.joinpath(Maybe(name).else_(os.path.basename(target))).symlink_to(target=target, target_is_directory=os.path.isdir(target))
+        pathlib.Path(self).joinpath(Maybe(name).else_(os.path.basename(target))).symlink_to(target=target, target_is_directory=os.path.isdir(target))
 
     def seek_files(self, depth: int = None, name: str = None, parent_path: str = None, contents: str = None, extensions: Collection[str] = None, re_flags: int = 0) -> Iterator[File]:
         """
