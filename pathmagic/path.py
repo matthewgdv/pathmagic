@@ -5,7 +5,7 @@ from typing import Any, Union, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import Enum
+from subtypes import AutoEnum
 
 if TYPE_CHECKING:
     from .file import File
@@ -22,8 +22,8 @@ def is_running_in_ipython() -> bool:
         return False
 
 
-class IfExists(Enum):
-    FAIL, ALLOW, MAKE_COPY = "fail", "allow", "make_copy"
+class IfExists(AutoEnum):
+    FAIL, ALLOW, MAKE_COPY  # noqa
 
 
 class Settings:
