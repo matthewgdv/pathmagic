@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import Enum, Str, Markup, Frame
+from subtypes import Enum, Str, Markup, Frame, NameSpaceDict
 
 from .path import PathLike
 
@@ -292,7 +292,7 @@ class Serialized(Format):
     extensions = {"pkl"}
 
     def __init__(self, file: File) -> None:
-        from miscutils import Serializer
+        from iotools import Serializer
 
         super().__init__(file=file)
         self.serializer = Serializer(file)
@@ -314,14 +314,13 @@ class Serialized(Format):
 
 class Json(Format):
     extensions = {"json"}
-    namespace_cls = dict
+    namespace_cls = NameSpaceDict
 
     @classmethod
     def initialize(cls) -> None:
         import json
 
         cls.module = json
-        cls.namespace_cls = cls._try_get_namespace_cls()
         cls.readfuncs.update({"json": json.load})
         cls.writefuncs.update({"json": json.dump})
 
@@ -336,14 +335,6 @@ class Json(Format):
     def write(self, item: Any, indent: int = 4, **kwargs: Any) -> None:
         with open(self.file, "w") as file:
             self.writefuncs[self.file.extension](item, file, indent=indent, **kwargs)
-
-    @staticmethod
-    def _try_get_namespace_cls() -> Any:
-        try:
-            from miscutils import NameSpaceDict
-            return NameSpaceDict
-        except ImportError:
-            return None
 
 
 class MarkUp(Format):
