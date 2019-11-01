@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import Enum, Str, Markup, Frame, NameSpaceDict
+from subtypes import Enum, Str, Markup, Frame, Dict_
 
 from .path import PathLike
 
@@ -314,7 +314,7 @@ class Serialized(Format):
 
 class Json(Format):
     extensions = {"json"}
-    namespace_cls = NameSpaceDict
+    namespace_cls = Dict_
 
     @classmethod
     def initialize(cls) -> None:
