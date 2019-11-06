@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import Enum, Str, Markup, Frame, Dict_
+from subtypes import Enum, Str, Markup, Frame, Dict_, List_
 
 from .path import PathLike
 
@@ -314,7 +314,6 @@ class Serialized(Format):
 
 class Json(Format):
     extensions = {"json"}
-    namespace_cls = Dict_
 
     @classmethod
     def initialize(cls) -> None:
@@ -328,7 +327,14 @@ class Json(Format):
         try:
             with open(self.file) as file:
                 ret = self.readfuncs[self.file.extension](file, **kwargs)
-                return ret if not namespace else (self.namespace_cls(ret) if self.namespace_cls is not None and isinstance(ret, dict) else ret)
+                if isinstance(ret, str):
+                    return Str(ret)
+                elif isinstance(ret, list):
+                    return List_(ret)
+                elif isinstance(ret, dict):
+                    return Dict_(ret)
+                else:
+                    return ret
         except self.module.JSONDecodeError:
             return self.file.path.read_text() or None
 
@@ -369,11 +375,11 @@ class Default(Format):
     def initialize(cls) -> None:
         cls.readfuncs = cls.writefuncs = defaultdict(lambda: open)
 
-    def read(self, **kwargs: Any) -> Optional[str]:
+    def read(self, **kwargs: Any) -> Optional[Str]:
         try:
             kwargs = kwargs if kwargs else {"encoding": "utf-8"}
             with open(self.file, **kwargs) as filehandle:
-                return str(filehandle.read())
+                return Str(filehandle.read())
         except UnicodeDecodeError:
             return None
 
