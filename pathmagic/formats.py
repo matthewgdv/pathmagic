@@ -259,13 +259,13 @@ class Link(Format):
 
     @classmethod
     def initialize(cls) -> None:
+        import win32com.client as win
+        cls.module = win
         cls.readfuncs.update({"lnk": cls._readlink})
         cls.writefuncs.update({"lnk": cls._writelink})
 
     def _readlink(self, linkpath: PathLike) -> PathLike:
-        import win32com.client as win
-
-        shell = win.Dispatch("WScript.Shell")
+        shell = self.module.Dispatch("WScript.Shell")
         shortcut = shell.CreateShortCut(os.path.realpath(linkpath))
         path = pathlib.Path(shortcut.Targetpath)
 
@@ -278,11 +278,8 @@ class Link(Format):
 
         return constructor(path)
 
-    @staticmethod
-    def _writelink(item: PathLike, linkpath: PathLike) -> None:
-        import win32com.client as win
-
-        shell = win.Dispatch("WScript.Shell")
+    def _writelink(self, item: PathLike, linkpath: PathLike) -> None:
+        shell = self.module.Dispatch("WScript.Shell")
         shortcut = shell.CreateShortCut(os.path.realpath(linkpath))
         shortcut.Targetpath = os.path.realpath(item)
         shortcut.save()
