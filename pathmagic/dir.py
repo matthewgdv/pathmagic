@@ -219,11 +219,13 @@ class Dir(Path):
         A maximal recursion depth may optionally be specified. At '0' only local Files may be returned, any Files within one level of subdirectories at '1', etc. Fully recursive if left 'None'.
         """
 
+        if not (parent_path is None or Str(self).re.search(parent_path, flags=re_flags)):
+            return
+
         for file in self.files:
             if (
                 (extensions is None or file.extension in extensions)
                 and (name is None or Str(file.stem).re.search(name, flags=re_flags))
-                and (parent_path is None or Str(self).re.search(parent_path, flags=re_flags))
                 and (contents is None or (len(file) > 0 and Str(file.contents).re.search(contents, flags=re_flags)))
             ):
                 yield file
@@ -244,10 +246,12 @@ class Dir(Path):
         A maximal recursion depth may optionally be specified. At '0' only local Dirs may be returned, any Dirs within one level of subdirectories at '1', etc. Fully recursive if left 'None'.
         """
 
+        if not (parent_path is None or Str(self).re.search(parent_path, flags=re_flags)):
+            return
+
         for directory in self.dirs:
             if (
                 (name is None or Str(directory.name).re.search(name, flags=re_flags))
-                and (parent_path is None or Str(self).re.search(parent_path, flags=re_flags))
                 and (contains_filename is None or any([Str(file.name).re.search(contains_filename, flags=re_flags) is not None for file in directory.files]))
                 and (contains_dirname is None or any([Str(subdir.name).re.search(contains_dirname, flags=re_flags) is not None for subdir in directory.dirs]))
             ):
