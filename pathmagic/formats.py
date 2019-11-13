@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import Enum, Str, Markup, Frame, Dict_, List_
+from subtypes import ValueEnum, Str, Markup, Frame, Dict_, List_
 
 from .path import PathLike
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from .file import File
 
 
-class FileFormats(Enum):
+class FileFormats(ValueEnum):
     """An Enum holding references to all file formats (and file extensions) currently registered to the FormatHandler."""
 
 
@@ -72,7 +72,7 @@ class FormatHandler:
     def add_format(cls, formatter_class: Type[Format]) -> None:
         cls.extensions.update(Maybe(formatter_class.extensions).else_(set()))
         cls.mappings.update({extension: formatter_class for extension in Maybe(formatter_class.extensions).else_({})})
-        FileFormats.extend_enum(formatter_class.__name__, Enum(formatter_class.__name__, {str(Str(extension).case.constant): extension for extension in formatter_class.extensions}))
+        FileFormats.extend_enum(formatter_class.__name__, ValueEnum(formatter_class.__name__, {str(Str(extension).case.constant): extension for extension in formatter_class.extensions}))
 
 
 class FormatMeta(ABCMeta):

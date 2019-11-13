@@ -5,7 +5,7 @@ from typing import Any, Union, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import AutoEnum
+from subtypes import Enum
 
 if TYPE_CHECKING:
     from .file import File
@@ -22,14 +22,10 @@ def is_running_in_ipython() -> bool:
         return False
 
 
-class IfExists(AutoEnum):
-    FAIL, ALLOW, MAKE_COPY  # noqa
-
-
 class Settings:
     """A Settings class for Path objects. Holds the constructors that Path objects will use when they need to instanciate relatives, as well as controlling other aspects of behaviour."""
 
-    def __init__(self, if_exists: str = None, lazy_instanciation: bool = None, file_class: Type[File] = None, dir_class: Type[Dir] = None) -> None:
+    def __init__(self, if_exists: Path.IfExists = None, lazy_instanciation: bool = None, file_class: Type[File] = None, dir_class: Type[Dir] = None) -> None:
         from .file import File
         from .dir import Dir
 
@@ -44,9 +40,11 @@ class Settings:
 class Path(os.PathLike):
     """Abstract Base Class from which 'File' and 'Dir' objects derive."""
 
+    class IfExists(Enum):
+        FAIL, ALLOW, MAKE_COPY = "fail", "allow", "make_copy"
+
     __subclasshook__ = object.__subclasshook__  # type:ignore
 
-    IfExists = IfExists
     DEFAULT_IF_EXISTS = IfExists.FAIL
 
     if_exists: bool
@@ -100,14 +98,14 @@ class Path(os.PathLike):
             raise FileExistsError(f"Path '{path}' is already this {type(self).__name__}'s path. Cannot copy or move a {type(self).__name__} to its own path.")
         else:
             if os.path.exists(path):
-                if self.settings.if_exists == IfExists.ALLOW:
+                if self.settings.if_exists == Path.IfExists.ALLOW:
                     pass
-                elif self.settings.if_exists == IfExists.MAKE_COPY:
+                elif self.settings.if_exists == Path.IfExists.MAKE_COPY:
                     raise NotImplementedError
-                elif self.settings.if_exists == IfExists.FAIL:
+                elif self.settings.if_exists == Path.IfExists.FAIL:
                     raise PermissionError(f"Path '{path}' already exists and current setting is '{self.settings.if_exists}'. To change this behaviour set the '{type(self).__name__}.settings.if_exists' attribute to one of: {Path.IfExists}.")
                 else:
-                    IfExists.raise_if_not_a_member(self.settings.if_exists)
+                    Path.IfExists.raise_if_not_a_member(self.settings.if_exists)
 
     def _get_settings(self) -> Settings:
         return Settings()
