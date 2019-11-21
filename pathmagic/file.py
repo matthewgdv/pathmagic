@@ -32,7 +32,7 @@ class File(Path):
     def __init__(self, path: PathLike, settings: Settings = None) -> None:
         self._name = self._stem = self._extension = None  # type: str
         self._path: pathlib.Path = None
-        self._contents: Any = None
+        self._content: Any = None
         self._parent: Dir = None
 
         self.settings = Maybe(settings).else_(self._get_settings())
@@ -52,24 +52,24 @@ class File(Path):
         if isinstance(self._format_handler.format, Default):
             self.read()
 
-        return 0 if not isinstance(self._contents, str) else self._contents.count("\n") + 1
+        return 0 if not isinstance(self._content, str) else self._content.count("\n") + 1
 
     def __bool__(self) -> bool:
         return True if os.path.getsize(self) > 0 else False
 
     def __iter__(self) -> Iterator[str]:
-        return iter(self.contents.split("\n"))
+        return iter(self.content.split("\n"))
 
     def __getitem__(self, key: int) -> str:
-        return str(self.contents.split("\n")[key])
+        return str(self.content.split("\n")[key])
 
     def __setitem__(self, key: int, val: str) -> None:
-        aslist = self.contents.split("\n")
+        aslist = self.content.split("\n")
         aslist[key] = val
         self.write("\n".join(aslist))
 
     def __delitem__(self, key: int) -> None:
-        aslist = self.contents.split("\n")
+        aslist = self.content.split("\n")
         del aslist[key]
         self.write("\n".join(aslist))
 
@@ -123,28 +123,28 @@ class File(Path):
         self.rename(f"{self.stem}{val if val.startswith('.') else f'.{val}'}")
 
     @property
-    def contents(self) -> Any:
+    def content(self) -> Any:
         """
-        Return or set the File's contents. Implicitly calls the 'read' and 'write' methods on assignment.
+        Return or set the File's content. Implicitly calls the 'read' and 'write' methods on assignment.
         When appending text to large textual files, use the 'append' method rather than '+=' operator on this property to avoid unnecessary I/O.
         """
         return self.read()
 
-    @contents.setter
-    def contents(self, val: Any) -> None:
+    @content.setter
+    def content(self, val: Any) -> None:
         self.write(val)
 
     def read(self, **kwargs: Any) -> Any:
         """
-        Return the File's contents as a string if it is not encoded, else attempt to return a useful Python object representing the file contents (e.g. Pandas DataFrame for tabular files, etc.).
-        If provided, **kwargs will be passed on to whichever function will be used to read in the File's contents. Call the 'readhelp' method for that function's documentation.
+        Return the File's content as a string if it is not encoded, else attempt to return a useful Python object representing the file content (e.g. Pandas DataFrame for tabular files, etc.).
+        If provided, **kwargs will be passed on to whichever function will be used to read in the File's content. Call the 'readhelp' method for that function's documentation.
         """
-        self._contents = self._format_handler.read(**kwargs)
-        return self._contents
+        self._content = self._format_handler.read(**kwargs)
+        return self._content
 
     def read_help(self) -> None:
         """
-        Print help documentation for the underlying reader function that is implicitly called when reading from this file type or accessing the 'contents' property.
+        Print help documentation for the underlying reader function that is implicitly called when reading from this file type or accessing the 'content' property.
         Any '**kwargs' passed to this File's 'read' method will be passed on to the underlying reader function. Do not resupply this File's path as a kwarg.
         """
         self._format_handler.read_help()
@@ -156,7 +156,7 @@ class File(Path):
 
     def write_help(self) -> None:
         """
-        Print help documentation for the underlying writer function that is implicitly called when writing to this file type or setting to the 'contents' property.
+        Print help documentation for the underlying writer function that is implicitly called when writing to this file type or setting to the 'content' property.
         Any '**kwargs' passed to this File's 'write' method will be passed on to the underlying writer function. Do not resupply this File's path as a kwarg.
         """
         self._format_handler.write_help()
@@ -230,7 +230,7 @@ class File(Path):
     def recover(self) -> File:
         """Attempt to reconstruct the file represented by this File object from its attributes after it has been deleted from the file system."""
         self._prepare_file_if_not_exists(self)
-        self.contents = self._contents
+        self.content = self._content
         return self
 
     @classmethod

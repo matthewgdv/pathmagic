@@ -16,9 +16,9 @@ The `Dir` class
 * Two accessor objects (`Dir.files`, `Dir.dirs`) which allow iteration over their respective   collections, item access, membership tests, and more
 * Two specialized accessor objects (`Dir.d`, `Dir.f`), which dynamically populate themselves with snake_cased attributes that represent the files/folders in their `Dir`, such that
   the filesystem tree can be traversed purely through attribute access
-* Methods to create new files/dirs, copy/move self to another path/dir, delete self or contents, and join self to a relative path
+* Methods to create new files/dirs, copy/move self to another path/dir, delete self or content, and join self to a relative path
 * Recursively walk the tree downwards, comparing own tree to a parallel filesystem tree
-* Recursively seek files or dirs down the directory tree with inclusions/exclusions based on valid extensions and regex patterns matching name, path, and contents.
+* Recursively seek files or dirs down the directory tree with inclusions/exclusions based on valid extensions and regex patterns matching name, path, and content.
 * Compress self into a zipfile
 * Visualize tree to arbitrary depth with an ascii representation
 * Initialize from homepath, desktop, or package
@@ -29,24 +29,24 @@ The `File` class
   `File.prename`, `File.extension`)
 * Methods to copy/move self to another path/dir or delete self
 * Initialize from script entry point (in traditional interpreter), and from a package resource
-* `File.read()` and `File.write()` methods (and associated `File.contents` property) which invokes the `FormatHandler` class to determine how to read from/write to the file based
+* `File.read()` and `File.write()` methods (and associated `File.content` property) which invokes the `FormatHandler` class to determine how to read from/write to the file based
   on its extension. `FormatHandler` uses the factory design pattern and can be extended at runtime to enable `File` to handle types of files that are not supported by default.
 * By default, recognized formats are the following:
 
     | format        |   class accepted/returned         |   file extensions         |
     | ------------- | --------------------------------- | ------------------------- |
-    | Pdf           |   PyPDF2                          |   pdf                     |
-    | Tabular       |   subtypes.Frame                  |   xlsx, csv               |
-    | Word          |   docx.Document                   |   docx                    |
-    | Image         |   PIL.Image                       |   png, jpf, jpeg          |
-    | Audio         |   pydub.AudioSegment              |   mp3, wav, ogg, flv      |
-    | Video         |   Moviepy.editor.edit             |   mp4, mkv, avi, gif      |
-    | Compressed    |   pathmagic.Dir                   |   zip, tar                |
-    | Link          |   pathlib.File or Pathlib.Dir     |   lnk                     |
-    | Serialized    |   Any                             |   pkl                     |
-    | Json          |   subtypes.NameSpace or Any       |   json                    |
-    | MarkUp        |   subtypes.Markup                 |   html, xml               |
-    | Default       |   str                             |   everything else         |
+    | Pdf           | PyPDF2                            | pdf                       |
+    | Tabular       | subtypes.Frame                    | xlsx, csv                 |
+    | Word          | docx.Document                     | docx                      |
+    | Image         | PIL.Image                         | png, jpf, jpeg            |
+    | Audio         | pydub.AudioSegment                | mp3, wav, ogg, flv        |
+    | Video         | Moviepy.editor.edit               | mp4, mkv, avi, gif        |
+    | Compressed    | pathmagic.Dir                     | zip, tar                  |
+    | Link          | pathmagic.File or pathmagic.Dir   | lnk                       |
+    | Serialized    | Any                               | pkl                       |
+    | Json          | Any                               | json                      |
+    | MarkUp        | subtypes.Markup                   | html, xml                 |
+    | Default       | subtypes.Str                      | everything else           |
 
 
 Installation

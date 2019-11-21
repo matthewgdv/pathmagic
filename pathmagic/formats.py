@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 import tarfile
 import zipfile
 from abc import ABCMeta
@@ -10,7 +11,7 @@ from typing import Any, Callable, Dict, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import ValueEnum, Str, Markup, Frame, Dict_, List_
+from subtypes import ValueEnum, Str, Markup, Frame, Translator
 
 from .path import PathLike
 
@@ -314,24 +315,14 @@ class Json(Format):
 
     @classmethod
     def initialize(cls) -> None:
-        import json
-
-        cls.module = json
+        cls.module, cls.translator = json, Translator()
         cls.readfuncs.update({"json": json.load})
         cls.writefuncs.update({"json": json.dump})
 
     def read(self, namespace: bool = True, **kwargs: Any) -> Any:
         try:
             with open(self.file) as file:
-                ret = self.readfuncs[self.file.extension](file, **kwargs)
-                if isinstance(ret, str):
-                    return Str(ret)
-                elif isinstance(ret, list):
-                    return List_(ret)
-                elif isinstance(ret, dict):
-                    return Dict_(ret)
-                else:
-                    return ret
+                return self.translator(self.readfuncs[self.file.extension](file, **kwargs))
         except self.module.JSONDecodeError:
             return self.file.path.read_text() or None
 

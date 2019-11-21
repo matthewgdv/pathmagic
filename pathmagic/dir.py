@@ -211,10 +211,10 @@ class Dir(Path):
         """Create a symlink to the given target. If the name of the symlink is not given, the basename of the target will be used. """
         pathlib.Path(self).joinpath(Maybe(name).else_(os.path.basename(target))).symlink_to(target=target, target_is_directory=os.path.isdir(target))
 
-    def seek_files(self, depth: int = None, name: str = None, parent_path: str = None, contents: str = None, extensions: Collection[str] = None, re_flags: int = 0) -> Iterator[File]:
+    def seek_files(self, depth: int = None, name: str = None, parent_path: str = None, content: str = None, extensions: Collection[str] = None, re_flags: int = 0) -> Iterator[File]:
         """
         Iterate recursively over the File objects within this Dir and all sub-Dirs, returning those that match all the regex patterns provided and have the correct extension.
-        If the 'contents' argument is provided, any File with contents that is encoded in any way or is not 'string-like' will be considered invalid and will not be returned.
+        If the 'content' argument is provided, any File with content that is encoded in any way or is not 'string-like' will be considered invalid and will not be returned.
         Any arguments left as 'None' automatically pass. This means that if no arguments are provided, every single File within this Dir's directory tree is valid to be returned.
         A maximal recursion depth may optionally be specified. At '0' only local Files may be returned, any Files within one level of subdirectories at '1', etc. Fully recursive if left 'None'.
         """
@@ -226,7 +226,7 @@ class Dir(Path):
             if (
                 (extensions is None or file.extension in extensions)
                 and (name is None or Str(file.stem).re.search(name, flags=re_flags))
-                and (contents is None or (len(file) > 0 and Str(file.contents).re.search(contents, flags=re_flags)))
+                and (content is None or (len(file) > 0 and Str(file.content).re.search(content, flags=re_flags)))
             ):
                 yield file
 
@@ -237,7 +237,7 @@ class Dir(Path):
                 depth -= 1
 
         for directory in self.dirs:
-            yield from directory.seek_files(depth=depth, name=name, parent_path=parent_path, contents=contents, extensions=extensions, re_flags=re_flags)
+            yield from directory.seek_files(depth=depth, name=name, parent_path=parent_path, content=content, extensions=extensions, re_flags=re_flags)
 
     def seek_dirs(self, depth: int = None, name: str = None, parent_path: str = None, contains_filename: str = None, contains_dirname: str = None, re_flags: int = 0) -> Iterator[Dir]:
         """
@@ -295,7 +295,7 @@ class Dir(Path):
             yield from (((None, directory), iter([])) for directory in other.dirs if directory.name not in self.dirs())
 
     def compress(self, name: str = None, **kwargs: Any) -> File:
-        """Compress the contents of this dir into a '.zip' archive of the chosen name, and place it into this Dir's parent Dir. Then return that zip File. If no name is given, this Dir's name will be used (plus '.zip' extension)."""
+        """Compress the content of this dir into a '.zip' archive of the chosen name, and place it into this Dir's parent Dir. Then return that zip File. If no name is given, this Dir's name will be used (plus '.zip' extension)."""
         outfile: File = self.parent.new_file(f"{Maybe(name).else_(self.name)}.zip")
         with zipfile.ZipFile(outfile, mode="w", compression=zipfile.ZIP_DEFLATED, **kwargs) as zipper:
             for directory, dirs, files in self.walk():
