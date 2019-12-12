@@ -9,6 +9,7 @@ from typing import Any, Collection, Dict, Iterator, List, Optional, Tuple, Union
 from types import ModuleType
 
 from appdirs import user_data_dir, site_data_dir
+
 from maybe import Maybe
 from subtypes import Str
 
@@ -160,7 +161,7 @@ class Dir(Path):
         return self
 
     def delete(self) -> Dir:
-        """Delete this Dir object's mapped directory from the file system. The Dir object will persist and may still be used."""
+        """Delete this Dir object's mapped directory from the file system. The Dir object will persist and may still be used, but the content will not be recoverable."""
         shutil.rmtree(self, ignore_errors=True)
         return self
 

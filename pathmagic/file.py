@@ -223,14 +223,8 @@ class File(Path):
         return self
 
     def delete(self) -> File:
-        """Delete this File's object's mapped file from the file system. The File object will persist and may still be used."""
+        """Delete this File object's mapped file from the file system. The File object will persist and may still be used, but the content may not be recoverable."""
         os.remove(self)
-        return self
-
-    def recover(self) -> File:
-        """Attempt to reconstruct the file represented by this File object from its attributes after it has been deleted from the file system."""
-        self._prepare_file_if_not_exists(self)
-        self.content = self._content
         return self
 
     @classmethod

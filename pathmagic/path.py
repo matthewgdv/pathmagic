@@ -4,6 +4,8 @@ import os
 from typing import Any, Union, Type, TYPE_CHECKING
 import pathlib
 
+from send2trash import send2trash
+
 from maybe import Maybe
 from subtypes import Enum
 
@@ -89,8 +91,13 @@ class Path(os.PathLike):
     def stat(self) -> os.stat_result:
         return os.stat(self)
 
-    def resolve(self) -> Dir:
+    def resolve(self) -> Path:
         return type(self)(self.path.resolve(), settings=self.settings)
+
+    def trash(self) -> File:
+        """Move this object's mapped path to your OS' implementation of a recycling bin. The object will persist and may still be used."""
+        send2trash(str(self))
+        return self
 
     def _validate(self, path: PathLike) -> None:
         path = os.path.abspath(path)

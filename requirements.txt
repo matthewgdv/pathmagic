@@ -8,3 +8,4 @@ maybe-else
 moviepy
 pydub
 pysubtypes
+Send2Trash
