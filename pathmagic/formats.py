@@ -31,7 +31,7 @@ class FormatHandler:
 
     def __init__(self, file: File):
         self.file = file
-        self.format: Format = None
+        self.format: Optional[Format] = None
 
         if self.file.extension not in self.extensions:
             self._ensure_format()
@@ -78,6 +78,7 @@ class FormatHandler:
 
 class FormatMeta(ABCMeta):
     def __new__(mcs, name: str, bases: Any, namespace: dict) -> Type[Format]:
+        # noinspection PyTypeChecker
         cls: Type[Format] = super().__new__(mcs, name, bases, namespace)
 
         cls.readfuncs, cls.writefuncs = {}, {}

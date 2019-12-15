@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .file import File
     from .dir import Dir
 
-PathLike = Union[str, os.PathLike]
+PathLike = Union[str, os.PathLike, pathlib.Path]
 
 
 def is_running_in_ipython() -> bool:
@@ -89,12 +89,12 @@ class Path(os.PathLike):
 
     @property
     def stat(self) -> os.stat_result:
-        return os.stat(self)
+        return os.stat(str(self))
 
     def resolve(self) -> Path:
         return type(self)(self.path.resolve(), settings=self.settings)
 
-    def trash(self) -> File:
+    def trash(self) -> Path:
         """Move this object's mapped path to your OS' implementation of a recycling bin. The object will persist and may still be used."""
         send2trash(str(self))
         return self

@@ -32,7 +32,7 @@ with Profiler() as standard_create_profiler:
 print(standard_create_profiler)
 
 with Profiler() as standard_delete_profiler:
-    for file in os.listdir(testdir):
+    for file in os.listdir(str(testdir)):
         os.remove(f"{testdir}/{file}")
 
 print(standard_delete_profiler)

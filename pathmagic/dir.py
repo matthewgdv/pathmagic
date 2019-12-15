@@ -30,9 +30,9 @@ class Dir(Path):
     """
 
     def __init__(self, path: PathLike = "", settings: Settings = None) -> None:
-        self._name: str = None
-        self._path: pathlib.Path = None
-        self._parent: Dir = None
+        self._name: Optional[str] = None
+        self._path: Optional[pathlib.Path] = None
+        self._parent: Optional[Dir] = None
         self._files: Dict[str, Optional[File]] = {}
         self._dirs: Dict[str, Optional[Dir]] = {}
         self._cwd_stack = []
@@ -73,7 +73,7 @@ class Dir(Path):
 
     def __enter__(self) -> Dir:
         self._cwd_stack.append(os.getcwd())
-        os.chdir(self)
+        os.chdir(str(self))
         return self
 
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
@@ -92,7 +92,7 @@ class Dir(Path):
     def parent(self) -> Dir:
         """Return or set the Dir's parent directory as a Dir object."""
         if self._parent is None:
-            self._parent = self.settings.dir_class(os.path.dirname(self.path), settings=self.settings)
+            self._parent = self.settings.dir_class(os.path.dirname(str(self.path)), settings=self.settings)
         return self._parent
 
     @parent.setter

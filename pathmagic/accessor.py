@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from abc import ABC
-from typing import Any, Callable, Dict, List, Union, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Union, TYPE_CHECKING, Optional
 
 from subtypes import Str
 
@@ -16,8 +16,8 @@ class Accessor(ABC):
 
     def __init__(self, parent: Dir) -> None:
         self.parent = parent
-        self._access = self._sync = None  # type: Callable
-        self._collection: dict = None
+        self._access = self._sync = None  # type: Optional[Callable]
+        self._collection: Optional[dict] = None
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(num_items={len(self)}, items={list(self._collection)})"

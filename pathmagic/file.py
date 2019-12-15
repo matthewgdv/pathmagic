@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import sys
-from typing import Any, Iterator, TYPE_CHECKING
+from typing import Any, Iterator, TYPE_CHECKING, Optional
 from types import ModuleType
 import pathlib
 
@@ -30,10 +30,10 @@ class File(Path):
     """
 
     def __init__(self, path: PathLike, settings: Settings = None) -> None:
-        self._name = self._stem = self._extension = None  # type: str
-        self._path: pathlib.Path = None
+        self._name = self._stem = self._extension = None  # type: Optional[str]
+        self._path: Optional[pathlib.Path] = None
         self._content: Any = None
-        self._parent: Dir = None
+        self._parent: Optional[Dir] = None
 
         self.settings = Maybe(settings).else_(self._get_settings())
 
@@ -151,7 +151,7 @@ class File(Path):
 
     def write(self, val: Any, **kwargs: Any) -> File:
         """Write to this File object's mapped file, overwriting anything already there. Returns self."""
-        self._format_handler.write(item=val)
+        self._format_handler.write(item=val, **kwargs)
         return self
 
     def write_help(self) -> None:
@@ -224,7 +224,7 @@ class File(Path):
 
     def delete(self) -> File:
         """Delete this File object's mapped file from the file system. The File object will persist and may still be used, but the content may not be recoverable."""
-        os.remove(self)
+        os.remove(str(self))
         return self
 
     @classmethod

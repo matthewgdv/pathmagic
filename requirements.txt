@@ -1,3 +1,4 @@
+pandas
 Pillow
 PyPDF2
 appdirs
