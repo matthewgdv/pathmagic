@@ -34,7 +34,7 @@ class Accessor(ABC):
 
     def __contains__(self, other: os.PathLike) -> bool:
         with self.parent:
-            return os.path.realpath(other) in self(full_path=True)
+            return os.path.abspath(other) in self(full_path=True)
 
     def __getitem__(self, key: str) -> Union[File, Dir]:
         return self._access(key)
