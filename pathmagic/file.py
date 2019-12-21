@@ -195,13 +195,13 @@ class File(Path):
         shutil.copyfile(self, os.path.abspath(path))
         return self
 
-    def new_copy_to(self, directory: Dir) -> File:
+    def new_copy_to(self, directory: PathLike) -> File:
         """Create a new copy of this File within the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns the new File."""
         parent = self.settings.dir_class.from_pathlike(directory, settings=self.settings)
         parent._bind(self)
         return parent.files[self.name]
 
-    def copy_to(self, directory: Dir) -> File:
+    def copy_to(self, directory: PathLike) -> File:
         """Create a new copy of this File within the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns self."""
         self.new_copy_to(directory)
         return self
@@ -212,7 +212,7 @@ class File(Path):
         self._set_params(path)
         return self
 
-    def move_to(self, directory: Dir) -> File:
+    def move_to(self, directory: PathLike) -> File:
         """Move this File to the specified path. If a Dir object is supplied, both objects will be acquire references to one another. Returns self."""
         self.settings.dir_class.from_pathlike(directory, settings=self.settings)._bind(self, preserve_original=False)
         return self
