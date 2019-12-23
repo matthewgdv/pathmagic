@@ -73,7 +73,7 @@ class FormatHandler:
     def add_format(cls, formatter_class: Type[Format]) -> None:
         cls.extensions.update(Maybe(formatter_class.extensions).else_(set()))
         cls.mappings.update({extension: formatter_class for extension in Maybe(formatter_class.extensions).else_({})})
-        FileFormats.extend_enum(formatter_class.__name__, ValueEnum(formatter_class.__name__, {str(Str(extension).case.constant): extension for extension in formatter_class.extensions}))
+        FileFormats.extend_enum(formatter_class.__name__, ValueEnum(formatter_class.__name__, {str(Str(extension).case.constant()): extension for extension in formatter_class.extensions}))
 
 
 class FormatMeta(ABCMeta):
