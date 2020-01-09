@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 import os
 import sys
 import pathlib
 import shutil
 import zipfile
+from tempfile import gettempdir
 from typing import Any, Collection, Dict, Iterator, List, Optional, Tuple, Union, cast
 from types import ModuleType
 
@@ -37,15 +39,14 @@ class Dir(Path):
         self._dirs: Dict[str, Optional[Dir]] = {}
         self._cwd_stack = []
 
-        self.settings = Maybe(settings).else_(self._get_settings())
+        self.settings = settings if settings is not None else self._get_settings()
 
         self._set_params(path, move=False)
         self.create()
 
         self.files, self.dirs = FileAccessor(self), DirAccessor(self)
         self.f, self.d = FileDotAccessor(self.files), DirDotAccessor(self.dirs)
-        self._synchronize_files()
-        self._synchronize_dirs()
+        self._synchronize_files(), self._synchronize_dirs()
 
     def __repr__(self) -> str:
         try:
@@ -355,6 +356,18 @@ class Dir(Path):
             return cls(site_data_dir(appname=app_name, appauthor=app_author, version=version), settings=settings)
         else:
             return cls(user_data_dir(appname=app_name, appauthor=app_author, version=version, roaming=roaming), settings=settings)
+
+    @classmethod
+    @contextmanager
+    def temp(cls, settings: Settings = None) -> Dir:
+        temp_dir = cls(path=gettempdir(), settings=settings).new_dir("pythontemp").clear()
+        try:
+            yield temp_dir
+        finally:
+            try:
+                temp_dir.delete()
+            except FileNotFoundError:
+                pass
 
     def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True) -> None:
         """

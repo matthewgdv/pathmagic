@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import sys
+import zipfile
 from typing import Any, Iterator, TYPE_CHECKING, Optional
 from types import ModuleType
 import pathlib
@@ -226,6 +227,14 @@ class File(Path):
         """Delete this File object's mapped file from the file system. The File object will persist and may still be used, but the content may not be recoverable."""
         os.remove(str(self))
         return self
+
+    def compress(self, name: str = None, **kwargs: Any) -> File:
+        """Compress the content of this file into a '.zip' archive of the chosen name, and place it into this File's parent Dir. Then return that zip File. If no name is given, this File's name will be used (plus '.zip' extension)."""
+        outfile: File = self.parent.new_file(f"{Maybe(name).else_(self.name)}.zip")
+        with zipfile.ZipFile(outfile, mode="w", compression=zipfile.ZIP_DEFLATED, **kwargs) as zipper:
+            zipper.write(self.path, self.name)
+
+        return outfile
 
     @classmethod
     def from_main(cls, settings: Settings = None) -> File:
