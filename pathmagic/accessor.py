@@ -27,6 +27,7 @@ class Accessor(ABC):
         return [filename if not full_path else os.path.join(self.parent, filename) for filename in self._collection]
 
     def __len__(self) -> int:
+        self._sync()
         return len(self._collection)
 
     def __iter__(self) -> Any:

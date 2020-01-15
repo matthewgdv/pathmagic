@@ -38,6 +38,7 @@ class Dir(Path):
         self._files: Dict[str, Optional[File]] = {}
         self._dirs: Dict[str, Optional[Dir]] = {}
         self._cwd_stack = []
+        self._forbidden = False
 
         self.settings = settings if settings is not None else self._get_settings()
 
@@ -50,7 +51,10 @@ class Dir(Path):
 
     def __repr__(self) -> str:
         try:
-            return f"{type(self).__name__}(path={repr(self.path)}, files={len(self.files())}, dirs={len(self.dirs())})"
+            if not self._forbidden:
+                return f"{type(self).__name__}(path={repr(self.path)}, files={len(self.files)}, dirs={len(self.dirs)})"
+            else:
+                return f"{type(self).__name__}(path={repr(self.path)}, forbidden=True, files=?, dirs=?)"
         except FileNotFoundError:
             return f"{type(self).__name__}(path={repr(self.path)}, deleted=True, files=?, dirs=?)"
 
@@ -387,18 +391,24 @@ class Dir(Path):
             raise TypeError(f"Objects to bind must be {File.__name__} or {Dir.__name__} (or some subclass), not {type(existing_object).__name__}")
 
     def _synchronize_files(self) -> None:
-        real_files = [item.name for item in os.scandir(self) if item.is_file()]
-        new_files = {name: self._files.get(name) for name in real_files}
-        self._files.clear()
-        self._files.update(new_files)
-        self.f._acquire(real_files)
+        try:
+            real_files = [item.name for item in os.scandir(self) if item.is_file()]
+            new_files = {name: self._files.get(name) for name in real_files}
+            self._files.clear()
+            self._files.update(new_files)
+            self.f._acquire(real_files)
+        except PermissionError:
+            self._forbidden = True
 
     def _synchronize_dirs(self) -> None:
-        real_dirs = [item.name for item in os.scandir(self) if item.is_dir()]
-        new_dirs = {name: self._dirs.get(name) for name in real_dirs}
-        self._dirs.clear()
-        self._dirs.update(new_dirs)
-        self.d._acquire(real_dirs)
+        try:
+            real_dirs = [item.name for item in os.scandir(self) if item.is_dir()]
+            new_dirs = {name: self._dirs.get(name) for name in real_dirs}
+            self._dirs.clear()
+            self._dirs.update(new_dirs)
+            self.d._acquire(real_dirs)
+        except PermissionError:
+            self._forbidden = True
 
     def _access_files(self, name: str) -> File:
         if name not in self._files:

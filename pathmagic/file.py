@@ -237,6 +237,10 @@ class File(Path):
         return outfile
 
     @classmethod
+    def from_python(cls, settings: Settings = None) -> File:
+        return cls(sys.executable, settings=settings)
+
+    @classmethod
     def from_main(cls, settings: Settings = None) -> File:
         """Create a File representing the '__main__' module's path. This method will fail under circumstances that would cause the '__main__' module's path to be undefined, such as from within jupyter notebooks."""
         return cls(sys.modules["__main__"].__file__, settings=settings)
