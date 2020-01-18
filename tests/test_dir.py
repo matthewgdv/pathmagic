@@ -1,165 +1,150 @@
-import pytest
+# import pytest
 
 
-def test_Dir___bool__():
-    assert True
+class TestDir:
+    def test___call__(self):  # synced
+        assert True
 
+    def test___len__(self):  # synced
+        assert True
 
-def test_Dir___call__():
-    assert True
+    def test___bool__(self):  # synced
+        assert True
 
+    def test___getitem__(self):  # synced
+        assert True
 
-def test_Dir___getitem__():
-    assert True
+    def test___iter__(self):  # synced
+        assert True
 
+    def test_path(self):  # synced
+        assert True
 
-def test_Dir___init__():
-    assert True
+    def test_parent(self):  # synced
+        assert True
 
+    def test_name(self):  # synced
+        assert True
 
-def test_Dir___iter__():
-    assert True
+    def test_start(self):  # synced
+        assert True
 
+    def test_rename(self):  # synced
+        assert True
 
-def test_Dir___len__():
-    assert True
+    def test_new_rename(self):  # synced
+        assert True
 
+    def test_new_copy(self):  # synced
+        assert True
 
-def test_Dir___next__():
-    assert True
+    def test_copy(self):  # synced
+        assert True
 
+    def test_new_copy_to(self):  # synced
+        assert True
 
-def test_Dir___repr__():
-    assert True
+    def test_copy_to(self):  # synced
+        assert True
 
+    def test_move(self):  # synced
+        assert True
 
-def test_Dir__access_dirs():
-    assert True
+    def test_move_to(self):  # synced
+        assert True
 
+    def test_create(self):  # synced
+        assert True
 
-def test_Dir__access_files():
-    assert True
+    def test_delete(self):  # synced
+        assert True
 
+    def test_clear(self):  # synced
+        assert True
 
-def test_Dir__bind():
-    assert True
+    def test_make_file(self):  # synced
+        assert True
 
+    def test_new_file(self):  # synced
+        assert True
 
-def test_Dir__set_params():
-    assert True
+    def test_make_dir(self):  # synced
+        assert True
 
+    def test_new_dir(self):  # synced
+        assert True
 
-def test_Dir__synchronize_dirs():
-    assert True
+    def test_join_file(self):  # synced
+        assert True
 
+    def test_join_dir(self):  # synced
+        assert True
 
-def test_Dir__synchronize_files():
-    assert True
+    def test_symlink_to(self):  # synced
+        assert True
 
+    def test_seek_files(self):  # synced
+        assert True
 
-def test_Dir__visualize_tree():
-    assert True
+    def test_seek_dirs(self):  # synced
+        assert True
 
+    def test_walk(self):  # synced
+        assert True
 
-def test_Dir_clear():
-    assert True
+    def test_compare_files(self):  # synced
+        assert True
 
+    def test_compare_tree(self):  # synced
+        assert True
 
-def test_Dir_compare_files():
-    assert True
+    def test_compress(self):  # synced
+        assert True
 
+    def test_visualize(self):  # synced
+        assert True
 
-def test_Dir_compare_tree():
-    assert True
+    def test_from_home():  # synced
+        assert True
 
+    def test_from_desktop():  # synced
+        assert True
 
-def test_Dir_compress():
-    assert True
+    def test_from_cwd():  # synced
+        assert True
 
+    def test_from_root():  # synced
+        assert True
 
-def test_Dir_copy():
-    assert True
+    def test_from_main():  # synced
+        assert True
 
+    def test_from_package():  # synced
+        assert True
 
-def test_Dir_copyto():
-    assert True
+    def test_from_appdata():  # synced
+        assert True
 
+    def test_temp():  # synced
+        assert True
 
-def test_Dir_delete():
-    assert True
+    def test__bind(self):  # synced
+        assert True
 
+    def test__synchronize_files(self):  # synced
+        assert True
 
-def test_Dir_joindir():
-    assert True
+    def test__synchronize_dirs(self):  # synced
+        assert True
 
+    def test__access_files(self):  # synced
+        assert True
 
-def test_Dir_joinfile():
-    assert True
+    def test__access_dirs(self):  # synced
+        assert True
 
+    def test__set_params(self):  # synced
+        assert True
 
-def test_Dir_makedir():
-    assert True
-
-
-def test_Dir_makefile():
-    assert True
-
-
-def test_Dir_move():
-    assert True
-
-
-def test_Dir_moveto():
-    assert True
-
-
-def test_Dir_newcopy():
-    assert True
-
-
-def test_Dir_newcopyto():
-    assert True
-
-
-def test_Dir_newdir():
-    assert True
-
-
-def test_Dir_newfile():
-    assert True
-
-
-def test_Dir_newrename():
-    assert True
-
-
-def test_Dir_open():
-    assert True
-
-
-def test_Dir_opendir():
-    assert True
-
-
-def test_Dir_rename():
-    assert True
-
-
-def test_Dir_seekdirs():
-    assert True
-
-
-def test_Dir_seekfiles():
-    assert True
-
-
-def test_Dir_symlink_to():
-    assert True
-
-
-def test_Dir_visualize():
-    assert True
-
-
-def test_Dir_walk():
-    assert True
+    def test__visualize_tree(self):  # synced
+        assert True
