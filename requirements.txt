@@ -10,3 +10,4 @@ moviepy
 pydub
 pysubtypes
 Send2Trash
+simplejson
