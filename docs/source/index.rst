@@ -1,5 +1,5 @@
 Welcome to pathmagic's documentation!
-=================================
+=====================================
 
 .. toctree::
    :caption: Contents:
