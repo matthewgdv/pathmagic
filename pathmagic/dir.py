@@ -354,7 +354,7 @@ class Dir(Path):
         return cls(loc, settings=settings)
 
     @classmethod
-    def from_appdata(cls, app_name: str, app_author: str = "pythondata", version: str = None, roaming: bool = False, systemwide: bool = False, settings: Settings = None) -> Dir:
+    def from_appdata(cls, app_name: str = None, app_author: str = None, version: str = None, roaming: bool = False, systemwide: bool = False, settings: Settings = None) -> Dir:
         """Create a Dir within an application data storage location appropriate to the operating system in use."""
         if systemwide:
             return cls(site_data_dir(appname=app_name, appauthor=app_author, version=version), settings=settings)
