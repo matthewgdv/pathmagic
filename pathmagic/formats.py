@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import ValueEnum, Str, Markup, Frame, Translator
+from subtypes import ValueEnum, Str, Html, Frame, Translator
 
 from .path import PathLike
 
@@ -348,7 +348,7 @@ class MarkUp(Format):
         cls.writefuncs.update({extension: open for extension in cls.extensions})
 
     def read(self, **kwargs: Any) -> Any:
-        return Markup(self.io.read(), **kwargs)
+        return Html(self.io.read(), **kwargs)
 
     def write(self, item: Any, **kwargs: Any) -> None:
         self.io.write(str(item), **kwargs)
