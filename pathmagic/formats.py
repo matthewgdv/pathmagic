@@ -73,7 +73,7 @@ class FormatHandler:
     def add_format(cls, formatter_class: Type[Format]) -> None:
         cls.extensions.update(Maybe(formatter_class.extensions).else_(set()))
         cls.mappings.update({extension: formatter_class for extension in Maybe(formatter_class.extensions).else_({})})
-        FileFormats.extend_enum(formatter_class.__name__, ValueEnum(formatter_class.__name__, {str(Str(extension).case.constant()): extension for extension in formatter_class.extensions}))
+        FileFormats.extend(formatter_class.__name__, ValueEnum(formatter_class.__name__, {str(Str(extension).case.constant()): extension for extension in formatter_class.extensions}))
 
 
 class FormatMeta(ABCMeta):
@@ -372,7 +372,12 @@ class Default(Format):
         except UnicodeDecodeError:
             return None
 
-    def write(self, item: str, append: bool = False, **kwargs: Any) -> None:
+    def write(self, item: Any, append: bool = False, **kwargs: Any) -> None:
         kwargs = kwargs if kwargs else {"mode": "a" if append else "w", "encoding": "utf-8"}
         with open(self.file, **kwargs) as filehandle:
-            filehandle.write(str(item))
+            if isinstance(item, str):
+                filehandle.write(item)
+            elif isinstance(item, list):
+                filehandle.write("\n".join([str(line) for line in item]))
+            else:
+                filehandle.write(str(item))

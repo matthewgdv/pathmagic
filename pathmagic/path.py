@@ -16,6 +16,9 @@ if TYPE_CHECKING:
 PathLike = Union[str, os.PathLike, pathlib.Path]
 
 
+# TODO: Implement IfExists.COPY behaviour
+
+
 def is_running_in_ipython() -> bool:
     try:
         assert __IPYTHON__  # type: ignore
@@ -105,14 +108,14 @@ class Path(os.PathLike):
             raise FileExistsError(f"Path '{path}' is already this {type(self).__name__}'s path. Cannot copy or move a {type(self).__name__} to its own path.")
         else:
             if os.path.exists(path):
-                if self.settings.if_exists == Path.IfExists.ALLOW:
+                if self.settings.if_exists == self.IfExists.ALLOW:
                     pass
-                elif self.settings.if_exists == Path.IfExists.MAKE_COPY:
+                elif self.settings.if_exists == self.IfExists.MAKE_COPY:
                     raise NotImplementedError
-                elif self.settings.if_exists == Path.IfExists.FAIL:
-                    raise PermissionError(f"Path '{path}' already exists and current setting is '{self.settings.if_exists}'. To change this behaviour set the '{type(self).__name__}.settings.if_exists' attribute to one of: {Path.IfExists}.")
+                elif self.settings.if_exists == self.IfExists.FAIL:
+                    raise PermissionError(f"Path '{path}' already exists and current setting is '{self.settings.if_exists}'. To change this behaviour change the '{type(self).__name__}.settings.if_exists' attribute.")
                 else:
-                    Path.IfExists.raise_if_not_a_member(self.settings.if_exists)
+                    self.IfExists(self.settings.if_exists)
 
     def _get_settings(self) -> Settings:
         return Settings()
