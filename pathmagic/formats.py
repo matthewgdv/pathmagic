@@ -373,9 +373,11 @@ class Default(Format):
             return None
 
     def write(self, item: Any, append: bool = False, **kwargs: Any) -> None:
-        kwargs = kwargs if kwargs else {"mode": "a" if append else "w", "encoding": "utf-8"}
-        with open(self.file, **kwargs) as filehandle:
-            if isinstance(item, str):
+        true_kwargs = {**{"mode": "a" if append else "w", "encoding": "utf-8"}, **kwargs}
+        with open(self.file, **true_kwargs) as filehandle:
+            if item is None:
+                pass
+            elif isinstance(item, str):
                 filehandle.write(item)
             elif isinstance(item, list):
                 filehandle.write("\n".join([str(line) for line in item]))

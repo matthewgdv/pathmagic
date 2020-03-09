@@ -25,9 +25,8 @@ class File(Path):
     Item access can be used to retrieve, set and delete the lines in the file. The len() represents the number of lines, the str() returns the file's path,
     the bool() resolves to true if the file is not empty, and iteration yields one line at a time. Changes to any object property (setting it) will be reflected in the file system.
 
-    The file's name, stem (name without extension), extension, directory (as a Dir object), path (as a string) are properties that will cause the relevant changes in the
-    filesystem when set. The 'if_exists' contols behaviour when copying or moving files into paths with existing file system objects, while using this object's properties and methods.
-    The options are listed in this class' 'IfExists' enumeration.
+    The object's File.name, File.stem (name without extension), File.extension, File.parent (as a Dir object), File.path (as a pathlib.Path) are properties that will cause the relevant changes in the
+    filesystem when set.
     """
 
     def __init__(self, path: PathLike, settings: Settings = None) -> None:
@@ -36,7 +35,7 @@ class File(Path):
         self._content: Any = None
         self._parent: Optional[Dir] = None
 
-        self.settings = Maybe(settings).else_(self._get_settings())
+        self.settings = settings or self._get_settings()
 
         self._set_params(path, move=False)
         self.create()
