@@ -356,17 +356,26 @@ class Dir(Path):
     @classmethod
     def from_appdata(cls, app_name: str = None, app_author: str = None, version: str = None, roaming: bool = False, systemwide: bool = False, settings: Settings = None) -> Dir:
         """Create a Dir within an application data storage location appropriate to the operating system in use."""
-        if systemwide:
-            return cls(site_data_dir(appname=app_name, appauthor=app_author, version=version), settings=settings)
-        else:
-            return cls(user_data_dir(appname=app_name, appauthor=app_author, version=version, roaming=roaming), settings=settings)
+
+        try:
+            if systemwide:
+                return cls(site_data_dir(appname=app_name, appauthor=app_author, version=version), settings=settings)
+            else:
+                return cls(user_data_dir(appname=app_name, appauthor=app_author, version=version, roaming=roaming), settings=settings)
+        except PermissionError:
+            root = cls(os.environ["APPDATA"], settings=settings)
+
+            if not app_name:
+                return root
+            else:
+                app_folder = root.new_dir(app_author).new_dir(app_name) if app_author else root.new_dir(app_name)
+                return app_folder if not version else app_folder.new_dir(version)
 
     @classmethod
     @contextmanager
     def temp(cls, settings: Settings = None) -> Dir:
-        temp_dir = cls(path=gettempdir(), settings=settings).new_dir("pythontemp").clear()
         try:
-            yield temp_dir
+            yield temp_dir := cls(path=gettempdir(), settings=settings).new_dir("pythontemp").clear()
         finally:
             try:
                 temp_dir.delete()
