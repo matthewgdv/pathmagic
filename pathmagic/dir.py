@@ -374,8 +374,9 @@ class Dir(Path):
     @classmethod
     @contextmanager
     def temp(cls, settings: Settings = None) -> Dir:
+        temp_dir = cls(path=gettempdir(), settings=settings).new_dir("pythontemp").clear()
         try:
-            yield temp_dir := cls(path=gettempdir(), settings=settings).new_dir("pythontemp").clear()
+            yield temp_dir
         finally:
             try:
                 temp_dir.delete()
