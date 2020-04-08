@@ -340,7 +340,7 @@ class Dir(Path):
     @classmethod
     def from_root(cls, settings: Settings = None) -> Dir:
         """Create a Dir representing the root of the current drive."""
-        return cls(pathlib.Path.cwd().drive, settings=settings)
+        return cls(pathlib.Path.cwd().drive + os.sep, settings=settings)
 
     @classmethod
     def from_main(cls, settings: Settings = None) -> Dir:
