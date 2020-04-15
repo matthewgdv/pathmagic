@@ -30,12 +30,11 @@ class File(Path):
     """
 
     def __init__(self, path: PathLike, settings: Settings = None) -> None:
-        self._name = self._stem = self._extension = None  # type: Optional[str]
         self._path: Optional[pathlib.Path] = None
         self._content: Any = None
         self._parent: Optional[Dir] = None
 
-        self.settings = settings or self._get_settings()
+        self.settings = settings or self._get_default_settings()
 
         self._set_params(path, move=False)
         self.create()
@@ -96,31 +95,32 @@ class File(Path):
     @property
     def name(self) -> str:
         """Return or set the File's full name, including extension. Implicitly calls the 'rename' method."""
-        return self._name
+        return self.path.name
 
     @name.setter
     def name(self, val: str) -> None:
-        self.rename(val)
+        self.rename(name=val)
 
     @property
     def stem(self) -> str:
         """Return or set the File's name up to the extension. Implicitly calls the 'rename' method."""
-        return self._stem
+        return self.path.stem
 
     @stem.setter
     def stem(self, val: str) -> None:
-        self.rename(f"{val}{f'.{self.extension}' if self.extension else ''}")
+        self.rename(name=val, extension=self.extension)
 
     @property
     def extension(self) -> str:
         """Return or set the File's extension. Is always saved and returned as lower-cased regardless of how the filename is cased. Implicitly calls the 'rename' method."""
-        return self._extension
+        return self.path.suffix.strip(".").lower()
 
     @extension.setter
     def extension(self, val: str) -> None:
         if not ((val.startswith(".") and val.count(".") == 1) or val.count(".") == 0):
             raise ValueError(f"Too many '.' in extension name '{val}', or '.' not at start of string. 1 or 0 allowed. If 0, '.' will be set implicitly.")
-        self.rename(f"{self.stem}{val if val.startswith('.') else f'.{val}'}")
+
+        self.rename(name=self.stem, extension=val)
 
     @property
     def content(self) -> Any:
@@ -177,12 +177,12 @@ class File(Path):
 
     def rename(self, name: str, extension: str = None) -> File:
         """Rename this File to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns self."""
-        self._set_params(self.parent.path.joinpath(f"{name}{('.' + Maybe(extension)).else_('')}"))
+        self._set_params(self.parent.path.joinpath(f"{name}{self._clean_extension(extension)}"), move=True)
         return self
 
     def new_rename(self, name: str, extension: str = None) -> File:
         """Rename a new copy of this File in-place to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns the copy."""
-        return self.new_copy(self.parent.path.joinpath(f"{name}{('.' + Maybe(extension)).else_('')}"))
+        return self.new_copy(self.parent.path.joinpath(f"{name}{self._clean_extension(extension)}"))
 
     def new_copy(self, path: PathLike) -> File:
         """Create a new copy of this File at the specified path. Returns the new File."""
@@ -209,7 +209,7 @@ class File(Path):
     def move(self, path: PathLike) -> File:
         """Move this this File to the specified path. Returns self."""
         self._validate(path)
-        self._set_params(path)
+        self._set_params(path, move=True)
         return self
 
     def move_to(self, directory: PathLike) -> File:
@@ -256,5 +256,4 @@ class File(Path):
         if move:
             shutil.move(self, path_obj)
 
-        directory = None if self._parent is None else (self.parent if self.parent == path_obj.parent else self.settings.dir_class(path_obj.parent, settings=self.settings))
-        self._path, self._parent, self._name, self._stem, self._extension = path_obj, directory, path_obj.name, path_obj.stem, path_obj.suffix.strip(".").lower()
+        self._path, self._parent = path_obj, self._parent if self._parent == path_obj.parent else None

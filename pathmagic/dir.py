@@ -32,7 +32,6 @@ class Dir(Path):
     """
 
     def __init__(self, path: PathLike = "", settings: Settings = None) -> None:
-        self._name: Optional[str] = None
         self._path: Optional[pathlib.Path] = None
         self._parent: Optional[Dir] = None
         self._files: Dict[str, Optional[File]] = {}
@@ -40,7 +39,7 @@ class Dir(Path):
         self._cwd_stack = []
         self._forbidden = False
 
-        self.settings = settings if settings is not None else self._get_settings()
+        self.settings = settings or self._get_default_settings()
 
         self._set_params(path, move=False)
         self.create()
@@ -54,9 +53,9 @@ class Dir(Path):
             if not self._forbidden:
                 return f"{type(self).__name__}(path={repr(self.path)}, files={len(self.files)}, dirs={len(self.dirs)})"
             else:
-                return f"{type(self).__name__}(path={repr(self.path)}, forbidden=True, files=?, dirs=?)"
+                return f"{type(self).__name__}(path={repr(self.path)}, forbidden=True)"
         except FileNotFoundError:
-            return f"{type(self).__name__}(path={repr(self.path)}, deleted=True, files=?, dirs=?)"
+            return f"{type(self).__name__}(path={repr(self.path)}, deleted=True)"
 
     def __call__(self, full_path: bool = False) -> List[str]:
         return sum([accessor(full_path=full_path) for accessor in (self.files, self.dirs)], [])
@@ -102,12 +101,12 @@ class Dir(Path):
 
     @parent.setter
     def parent(self, val: Dir) -> None:
-        self.settings.dir_class(val)._bind(self, preserve_original=False)
+        self.settings.dir_class.from_pathlike(val)._bind(self, preserve_original=False)
 
     @property
     def name(self) -> str:
         """Return or set the Dir's name. Implicitly calls the 'rename' method when set."""
-        return self._name
+        return self.path.name
 
     @name.setter
     def name(self, val: str) -> None:
@@ -141,7 +140,7 @@ class Dir(Path):
     def new_copy_to(self, directory: PathLike) -> Dir:
         """Create a new copy of this Dir within the specified path. If passed a Dir object, both objects will acquire references to each other. Returns the copy."""
         parent = self.settings.dir_class.from_pathlike(directory, settings=self.settings)
-        parent._bind(self)
+        parent._bind(self, preserve_original=True)
         return parent.dirs[self.name]
 
     def copy_to(self, directory: PathLike) -> Dir:
@@ -189,7 +188,7 @@ class Dir(Path):
     def new_file(self, name: str, extension: str = None) -> File:
         """Instantiate a new File with the specified name within this Dir. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns that File."""
         name = f"{name}{('.' + Maybe(extension)).else_('')}"
-        self._bind(self.settings.file_class(self.path.joinpath(name), settings=self.settings))
+        self._bind(self.settings.file_class(self.path.joinpath(name), settings=self.settings), preserve_original=True)
         return self._files[name]
 
     def make_dir(self, name: str) -> Dir:
@@ -200,7 +199,7 @@ class Dir(Path):
 
     def new_dir(self, name: str) -> Dir:
         """Instantiate a new Dir with the specified name within this Dir. Returns that Dir."""
-        self._bind(self.settings.dir_class(self.path.joinpath(name), settings=self.settings))
+        self._bind(self.settings.dir_class(self.path.joinpath(name), settings=self.settings), preserve_original=True)
         return self._dirs[name]
 
     def join_file(self, path: PathLike) -> File:
@@ -385,7 +384,7 @@ class Dir(Path):
 
     def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True) -> None:
         """
-        Acquire a reference to the specified File or Dir in this object's 'files' or 'dirs' property, and in return provide that object a reference to this Dir as its 'dir' property.
+        Acquire a reference to the specified File or Dir in this object's 'files' or 'dirs' property, and in return provide that object a reference to this Dir as its 'parent' property.
         The target File or Dir will be copied and placed in this Dir if the 'preserve_original' argument is true, otherwise it will be moved instead.
         """
         pathlike = existing_object if self == os.path.dirname(existing_object) else (existing_object.new_copy if preserve_original else existing_object.move)(self.path.joinpath(existing_object.name))
@@ -444,8 +443,7 @@ class Dir(Path):
         if move:
             shutil.move(self, path_obj)
 
-        directory = None if self._parent is None else (self.parent if self.parent == path_obj.parent else self.settings.dir_class(path_obj.parent, settings=self.settings))
-        self._path, self._name, self._parent = path_obj, path_obj.name, directory
+        self._path, self._parent = path_obj, self._parent if self._parent == path_obj.parent else None
 
     def _visualize_tree(self, outlist: List[str], depth: int = None, padding: str = " ",
                         file_inclusion: str = None, file_exclusion: str = None, dir_inclusion: str = None, dir_exclusion: str = None) -> None:

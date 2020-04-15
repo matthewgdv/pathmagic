@@ -31,12 +31,7 @@ class Settings:
     """A Settings class for Path objects. Holds the constructors that Path objects will use when they need to instanciate relatives, as well as controlling other aspects of behaviour."""
 
     def __init__(self, if_exists: Path.IfExists = None, lazy_instanciation: bool = None, file_class: Type[File] = None, dir_class: Type[Dir] = None) -> None:
-        from .file import File
-        from .dir import Dir
-
-        self.if_exists = Maybe(if_exists).else_(Path.DEFAULT_IF_EXISTS)
-        self.lazy = Maybe(lazy_instanciation).else_(False if is_running_in_ipython() else True)
-        self.file_class, self.dir_class = Maybe(file_class).else_(File), Maybe(dir_class).else_(Dir)
+        self.if_exists, self.lazy, self.file_class, self.dir_class = if_exists, lazy_instanciation, file_class, dir_class
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
@@ -50,13 +45,12 @@ class Path(os.PathLike):
 
     __subclasshook__ = object.__subclasshook__  # type:ignore
 
-    DEFAULT_IF_EXISTS = IfExists.FAIL
+    Settings = Settings
 
-    if_exists: bool
+    settings: Settings
     _path: pathlib.Path
 
     def __init__(self, *args: Any, **kwargs: Any):
-        self.settings = Settings()
         raise TypeError(f"Cannot instanciate object of abstract type {type(self).__name__}. Please instanciate one of its subclasses.")
 
     def __str__(self) -> str:
@@ -102,9 +96,12 @@ class Path(os.PathLike):
         send2trash(str(self))
         return self
 
+    @classmethod
+    def from_pathlike(cls, pathlike: PathLike, settings: Settings = None) -> Path:
+        return pathlike if isinstance(pathlike, cls) else cls(path=pathlike, settings=settings)
+
     def _validate(self, path: PathLike) -> None:
-        path = os.path.abspath(path)
-        if self == path:
+        if self == (path := os.path.abspath(path)):
             raise FileExistsError(f"Path '{path}' is already this {type(self).__name__}'s path. Cannot copy or move a {type(self).__name__} to its own path.")
         else:
             if os.path.exists(path):
@@ -117,8 +114,11 @@ class Path(os.PathLike):
                 else:
                     self.IfExists(self.settings.if_exists)
 
-    def _get_settings(self) -> Settings:
-        return Settings()
+    def _get_default_settings(self) -> Settings:
+        from .file import File
+        from .dir import Dir
+
+        return self.Settings(if_exists=self.IfExists.FAIL, lazy_instanciation=not is_running_in_ipython(), file_class=File, dir_class=Dir)
 
     @staticmethod
     def _prepare_dir_if_not_exists(path: PathLike) -> None:
@@ -136,6 +136,6 @@ class Path(os.PathLike):
             if not pathlib.Path(path).is_file():
                 raise ex
 
-    @classmethod
-    def from_pathlike(cls, pathlike: PathLike, settings: Settings = None) -> Path:
-        return pathlike if isinstance(pathlike, cls) else cls(path=pathlike, settings=settings)
+    @staticmethod
+    def _clean_extension(extension: str) -> str:
+        return f".{extension.strip('.')}" if extension is not None else ''
