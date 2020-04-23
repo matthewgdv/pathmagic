@@ -34,7 +34,7 @@ class File(Path):
         self._content: Any = None
         self._parent: Optional[Dir] = None
 
-        self.settings = settings or self._get_default_settings()
+        self.settings = settings or self.Settings()
 
         self._set_params(path, move=False)
         self.create()

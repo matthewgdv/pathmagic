@@ -39,7 +39,7 @@ class Dir(Path):
         self._cwd_stack = []
         self._forbidden = False
 
-        self.settings = settings or self._get_default_settings()
+        self.settings = settings or self.Settings()
 
         self._set_params(path, move=False)
         self.create()
