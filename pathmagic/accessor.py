@@ -22,7 +22,7 @@ class Accessor(ABC):
     def __repr__(self) -> str:
         return f"{type(self).__name__}(num_items={len(self)}, items={list(self._collection)})"
 
-    def __call__(self, full_path: bool = False) -> List[str]:
+    def __call__(self, full_path: bool = False) -> list[str]:
         self._sync()
         return [filename if not full_path else os.path.join(self.parent, filename) for filename in self._collection]
 
@@ -72,8 +72,8 @@ class DotAccessor:
 
     def __init__(self, accessor: Accessor) -> None:
         self._accessor = accessor
-        self._mappings: Dict[str, List[str]] = {}
-        self._pending: List[str] = []
+        self._mappings: dict[str, list[str]] = {}
+        self._pending: list[str] = []
 
     def __getattribute__(self, name: str) -> Any:
         val = object.__getattribute__(self, name)
@@ -101,7 +101,7 @@ class DotAccessor:
                 else:
                     return self._accessor[names[0]]
 
-    def _acquire(self, names: List[str]) -> None:
+    def _acquire(self, names: list[str]) -> None:
         self._pending = names
         if not self._accessor.parent.settings.lazy:
             self.__acquire_references_as_attributes()

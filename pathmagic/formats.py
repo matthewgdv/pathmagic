@@ -27,7 +27,7 @@ class FileFormats(ValueEnum):
 class FormatHandler:
     """A class to manage file formats and react accordingly by file extension when reading and writing to/from files."""
     extensions: Set[str] = set()
-    mappings: Dict[str, Type[Format]] = {}
+    mappings: dict[str, Type[Format]] = {}
 
     def __init__(self, file: File):
         self.file = file
@@ -97,7 +97,7 @@ class Format(metaclass=FormatMeta):
     in situations where simply registering the currect callback to the 'Format.readfuncs' and 'Format.writefuncs' dicts is not enough (such as when the callback doesn't have the correct signature).
     """
     extensions: Set[str] = None
-    readfuncs = writefuncs = None  # type: Dict[str, Callable]
+    readfuncs = writefuncs = None  # type: dict[str, Callable]
 
     initialized = False
     module: Any = None

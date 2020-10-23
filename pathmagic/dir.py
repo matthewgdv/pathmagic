@@ -34,8 +34,8 @@ class Dir(Path):
     def __init__(self, path: PathLike = "", settings: Settings = None) -> None:
         self._path: Optional[pathlib.Path] = None
         self._parent: Optional[Dir] = None
-        self._files: Dict[str, Optional[File]] = {}
-        self._dirs: Dict[str, Optional[Dir]] = {}
+        self._files: dict[str, Optional[File]] = {}
+        self._dirs: dict[str, Optional[Dir]] = {}
         self._cwd_stack = []
         self._forbidden = False
 
@@ -57,7 +57,7 @@ class Dir(Path):
         except FileNotFoundError:
             return f"{type(self).__name__}(path={repr(self.path)}, deleted=True)"
 
-    def __call__(self, full_path: bool = False) -> List[str]:
+    def __call__(self, full_path: bool = False) -> list[str]:
         return sum([accessor(full_path=full_path) for accessor in (self.files, self.dirs)], [])
 
     def __len__(self) -> int:
@@ -445,7 +445,7 @@ class Dir(Path):
 
         self._path, self._parent = path_obj, self._parent if self._parent == path_obj.parent else None
 
-    def _visualize_tree(self, outlist: List[str], depth: int = None, padding: str = " ",
+    def _visualize_tree(self, outlist: list[str], depth: int = None, padding: str = " ",
                         file_inclusion: str = None, file_exclusion: str = None, dir_inclusion: str = None, dir_exclusion: str = None) -> None:
 
         for filename in self.files():
