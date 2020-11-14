@@ -12,7 +12,7 @@ perform file system operations when set, and implement many useful methods to ab
 
 The `Dir` class
 --------------------
-* Properties that perform rename and move operations when set (`Dir.path`, `Dir.dir`, `Dir.name`)
+* Properties that perform rename and move operations when set (`Dir.path`, `Dir.parent`, `Dir.name`)
 * Two accessor objects (`Dir.files`, `Dir.dirs`) which allow iteration over their respective   collections, item access, membership tests, and more
 * Two specialized accessor objects (`Dir.d`, `Dir.f`), which dynamically populate themselves with snake_cased attributes that represent the files/folders in their `Dir`, such that
   the filesystem tree can be traversed purely through attribute access
@@ -26,7 +26,7 @@ The `Dir` class
 The `File` class
 --------------------
 * Properties that perform rename and move operations when set (`File.path`, `File.dir`, `File.name`,
-  `File.prename`, `File.extension`)
+  `File.stem`, `File.extension`)
 * Methods to copy/move self to another path/dir or delete self
 * Initialize from script entry point (in traditional interpreter), and from a package resource
 * `File.read()` and `File.write()` methods (and associated `File.content` property) which invokes the `FormatHandler` class to determine how to read from/write to the file based
