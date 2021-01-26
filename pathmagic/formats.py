@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import ValueEnum, Str, Html, Frame, Translator
+from subtypes import ValueEnum, Str, Html, Xml, Frame, Translator
 
 from .path import PathLike
 
@@ -332,7 +332,7 @@ class Json(Format):
             self.writefuncs[self.file.extension](item, file, indent=indent, **kwargs)
 
 
-class MarkUp(Format):
+class Markup(Format):
     extensions = {"html", "xml"}
 
     def __init__(self, file: File) -> None:
@@ -344,11 +344,11 @@ class MarkUp(Format):
         import bs4
 
         cls.module = bs4
-        cls.readfuncs.update({extension: bs4.BeautifulSoup for extension in cls.extensions})
+        cls.readfuncs.update({"html": Html, "xml": Xml})
         cls.writefuncs.update({extension: open for extension in cls.extensions})
 
     def read(self, **kwargs: Any) -> Any:
-        return Html(self.io.read(), **kwargs)
+        return self.readfuncs[self.file.extension](self.io.read(),  **kwargs)
 
     def write(self, item: Any, **kwargs: Any) -> None:
         self.io.write(str(item), **kwargs)
