@@ -7,11 +7,11 @@ import zipfile
 from abc import ABCMeta
 from collections import defaultdict
 from types import MethodType
-from typing import Any, Callable, Dict, Optional, Set, Type, TYPE_CHECKING
+from typing import Any, Callable, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import ValueEnum, Str, Html, Xml, Frame, Translator
+from subtypes import ValueEnum, Str, Html, Xml, Frame, TranslatableMeta
 
 from .path import PathLike
 
@@ -161,11 +161,11 @@ class Word(Format):
     @classmethod
     def initialize(cls) -> None:
         import docx
-        from docx import document
+        from docx.document import Document
 
         cls.module = docx
         cls.readfuncs.update({"docx": cls.module.Document})
-        cls.writefuncs.update({"docx": document.Document.save})
+        cls.writefuncs.update({"docx": Document.save})
 
 
 class Image(Format):
@@ -316,7 +316,7 @@ class Json(Format):
 
     @classmethod
     def initialize(cls) -> None:
-        cls.module, cls.translator = json, Translator()
+        cls.module, cls.translator = json, TranslatableMeta.translator
         cls.readfuncs.update({"json": json.load})
         cls.writefuncs.update({"json": json.dump})
 
