@@ -7,7 +7,7 @@ import pathlib
 import shutil
 import zipfile
 from tempfile import gettempdir
-from typing import Any, Collection, Dict, Iterator, List, Optional, Tuple, Union, cast
+from typing import Any, Collection, Iterator, Optional, Tuple, Union, cast
 from types import ModuleType
 
 from appdirs import user_data_dir, site_data_dir
@@ -39,7 +39,7 @@ class Dir(Path):
         self._cwd_stack = []
         self._forbidden = False
 
-        self.settings = settings or self.Settings()
+        self.settings = settings or self.Settings.from_default()
 
         self._set_params(path, move=False)
         self.create()
@@ -204,12 +204,12 @@ class Dir(Path):
 
     def join_file(self, path: PathLike) -> File:
         """Join this path to a relative path ending in a file and return that path as a File object."""
-        clean = os.fspath(path).strip("\\").strip("/")
+        clean = os.fspath(path).strip("\\/")
         return self.settings.file_class(self.path.joinpath(clean), settings=self.settings)
 
     def join_dir(self, path: PathLike) -> Dir:
         """Join this path to a relative path ending in a folder and return that path as a Dir object."""
-        clean = os.fspath(path).strip("\\").strip("/")
+        clean = os.fspath(path).strip("\\/")
         return self.settings.dir_class(self.path.joinpath(clean), settings=self.settings)
 
     def symlink_to(self, target: PathLike, name: str = None) -> None:
@@ -247,8 +247,8 @@ class Dir(Path):
     def seek_dirs(self, depth: int = None, name: str = None, parent_path: str = None, contains_filename: str = None, contains_dirname: str = None, re_flags: int = 0) -> Iterator[Dir]:
         """
         Iterate recursively over the Dir objects within this Dir and all sub-Dirs, returning those that match all the regex patterns provided. This Dir will never be returned.
-        Any arguments left as 'None' automatically pass. This means that if no arguments are provided, every single Dir within this Dir's directory tree is valid to be returned.
-        A maximal recursion depth may optionally be specified. At '0' only local Dirs may be returned, any Dirs within one level of subdirectories at '1', etc. Fully recursive if left 'None'.
+        Any arguments left as 'None' automatically pass. This means that if no arguments are provided, every single Dir within this Dir's folder tree is valid to be returned.
+        A maximal recursion depth may optionally be specified. At '0' only local Dirs may be returned, any Dirs within one level of subfolders at '1', etc. Fully recursive if left 'None'.
         """
 
         if not (parent_path is None or Str(self).re.search(parent_path, flags=re_flags)):
@@ -387,7 +387,7 @@ class Dir(Path):
         Acquire a reference to the specified File or Dir in this object's 'files' or 'dirs' property, and in return provide that object a reference to this Dir as its 'parent' property.
         The target File or Dir will be copied and placed in this Dir if the 'preserve_original' argument is true, otherwise it will be moved instead.
         """
-        pathlike = existing_object if self == os.path.dirname(existing_object) else (existing_object.new_copy if preserve_original else existing_object.move)(self.path.joinpath(existing_object.name))
+        pathlike = existing_object if self == os.path.dirname(existing_object) else (existing_object.new_copy(self.path.joinpath(existing_object.name)) if preserve_original else existing_object.move(self.path.joinpath(existing_object.name)))
         pathlike._parent = self
 
         if issubclass(type(pathlike), File) and issubclass(type(pathlike), Dir):
@@ -420,22 +420,28 @@ class Dir(Path):
             self._forbidden = True
 
     def _access_files(self, name: str) -> File:
-        if name not in self._files:
-            self._synchronize_files()
-        if name in self._files:
+        try:
             file = self._files[name]
-            return file if file is not None else self.new_file(name)
-        else:
-            raise FileNotFoundError(f"File '{name}' not found in '{self}'")
+        except KeyError:
+            self._synchronize_files()
+            try:
+                file = self._files[name]
+            except KeyError:
+                raise FileNotFoundError(f"File '{name}' not found in '{self}'")
+
+        return file if file is not None else self.new_file(name)
 
     def _access_dirs(self, name: str) -> Dir:
-        if name not in self._dirs:
-            self._synchronize_dirs()
-        if name in self._dirs:
+        try:
             folder = self._dirs[name]
-            return folder if folder is not None else self.new_dir(name)
-        else:
-            raise FileNotFoundError(f"Dir '{name}' not found in '{self}'")
+        except KeyError:
+            self._synchronize_dirs()
+            try:
+                folder = self._dirs[name]
+            except KeyError:
+                raise FileNotFoundError(f"Dir '{name}' not found in '{self}'")
+
+        return folder if folder is not None else self.new_dir(name)
 
     def _set_params(self, path: str, move: bool = True) -> None:
         path_obj = pathlib.Path(os.path.abspath(path))

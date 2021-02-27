@@ -6,7 +6,6 @@ import pathlib
 
 from send2trash import send2trash
 
-from maybe import Maybe
 from subtypes import Enum
 
 if TYPE_CHECKING:
@@ -30,27 +29,18 @@ def is_running_in_ipython() -> bool:
 class Settings:
     """A Settings class for Path objects. Holds the constructors that Path objects will use when they need to instanciate relatives, as well as controlling other aspects of behaviour."""
 
-    def __init__(self, if_exists: Path.IfExists = None, lazy_instanciation: bool = None, file_class: Type[File] = None, dir_class: Type[Dir] = None) -> None:
+    def __init__(self, if_exists: Path.IfExists, lazy_instanciation: bool, file_class: Type[File], dir_class: Type[Dir]) -> None:
         self.if_exists, self.lazy, self.file_class, self.dir_class = if_exists, lazy_instanciation, file_class, dir_class
-        self._apply_default_settings()
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
 
-    def _apply_default_settings(self) -> None:
-        if self.if_exists is None:
-            self.if_exists = Path.IfExists.FAIL
+    @classmethod
+    def from_default(cls) -> Settings:
+        from .file import File
+        from .dir import Dir
 
-        if self.lazy is None:
-            self.lazy = not is_running_in_ipython()
-
-        if self.file_class is None:
-            from .file import File
-            self.file_class = File
-
-        if self.dir_class is None:
-            from .dir import Dir
-            self.dir_class = Dir
+        return cls(if_exists=Path.IfExists.FAIL, lazy_instanciation=not is_running_in_ipython(), file_class=File, dir_class=Dir)
 
 
 class Path(os.PathLike):
