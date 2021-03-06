@@ -29,6 +29,8 @@ class File(Path):
     filesystem when set.
     """
 
+    format = FormatHandler.formats
+
     def __init__(self, path: PathLike, settings: Settings = None) -> None:
         self._path: Optional[pathlib.Path] = None
         self._content: Any = None

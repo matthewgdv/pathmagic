@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import ValueEnum, Str, Html, Xml, Frame, TranslatableMeta
+from subtypes import Str, Html, Xml, Frame, NameSpace, TranslatableMeta
 
 from .path import PathLike
 
@@ -20,14 +20,11 @@ if TYPE_CHECKING:
     from .file import File
 
 
-class FileFormats:
-    """An class holding references to all file formats (and file extensions) currently registered to the FormatHandler."""
-
-
 class FormatHandler:
     """A class to manage file formats and react accordingly by file extension when reading and writing to/from files."""
     extensions: Set[str] = set()
     mappings: dict[str, Type[Format]] = {}
+    formats = NameSpace()
 
     def __init__(self, file: File):
         self.file = file
@@ -73,7 +70,7 @@ class FormatHandler:
     def add_format(cls, formatter_class: Type[Format]) -> None:
         cls.extensions.update(Maybe(formatter_class.extensions).else_(set()))
         cls.mappings.update({extension: formatter_class for extension in Maybe(formatter_class.extensions).else_({})})
-        setattr(FileFormats, formatter_class.__name__, ValueEnum(formatter_class.__name__, {str(Str(extension).case.constant()): extension for extension in formatter_class.extensions}))
+        cls.formats[formatter_class.__name__] = NameSpace({str(Str(extension).case.constant()): extension for extension in formatter_class.extensions})
 
 
 class FormatMeta(ABCMeta):

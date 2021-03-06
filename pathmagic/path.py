@@ -47,7 +47,7 @@ class Path(os.PathLike):
     """Abstract Base Class from which 'File' and 'Dir' objects derive."""
 
     class IfExists(Enum):
-        FAIL, ALLOW, MAKE_COPY = "fail", "allow", "make_copy"
+        FAIL = ALLOW = MAKE_COPY = Enum.Auto()
 
     __subclasshook__ = object.__subclasshook__  # type:ignore
 
