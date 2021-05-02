@@ -168,12 +168,12 @@ class File(Path):
         self._format_handler.append(text=val)
         return self
 
-    def start(self, app: str = None, print_call: bool = False) -> File:
+    def start(self, app: str = None) -> File:
         """Call the default application associated with this File's extension type on its own path. If an application is specified, open it with that instead. Returns self."""
         if app is None:
             os.startfile(self)
         else:
-            Process([app, self], print_call=print_call).wait()
+            Process([app, self]).wait()
 
         return self
 

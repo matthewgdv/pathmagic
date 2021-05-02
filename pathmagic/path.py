@@ -69,22 +69,22 @@ class Path(os.PathLike):
         return id(self)
 
     def __eq__(self, other: Any) -> bool:
-        return bool(os.fspath(self) == os.fspath(other))
+        return self.path == pathlib.Path(other).absolute()
 
     def __ne__(self, other: Any) -> bool:
-        return bool(os.fspath(self) != os.fspath(other))
+        return not (self == other)
 
     def __lt__(self, other: Any) -> bool:
-        return os.fspath(other) in os.fspath(self)
+        return str(self).startswith(str(pathlib.Path(other).absolute())) and not self == other
 
     def __le__(self, other: Any) -> bool:
-        return os.fspath(self) == os.fspath(other) or os.fspath(other) in os.fspath(self)
+        return str(self).startswith(str(pathlib.Path(other).absolute()))
 
     def __gt__(self, other: Any) -> bool:
-        return os.fspath(self) in os.fspath(other)
+        return str(pathlib.Path(other).absolute()).startswith(str(self)) and not self == other
 
     def __ge__(self, other: Any) -> bool:
-        return os.fspath(self) == os.fspath(other) or os.fspath(self) in os.fspath(other)
+        return str(pathlib.Path(other).absolute()).startswith(str(self))
 
     @property
     def path(self) -> pathlib.Path:

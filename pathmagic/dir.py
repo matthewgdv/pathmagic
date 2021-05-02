@@ -343,8 +343,8 @@ class Dir(Path):
 
     @classmethod
     def from_main(cls, settings: Settings = None) -> Dir:
-        """Create a Dir representing the parent of the '__main__' module's path. This method will fail in circumstances where the '__file__' attribute of the '__main__' module is undefined."""
-        return cls(File.from_main().parent, settings=settings) if not is_running_in_ipython() else cls(sys.modules["__main__"]._dh[0], settings=settings)
+        """Create a Dir representing the parent of the '__main__' module's path. This method may fail in circumstances where the '__file__' attribute of the '__main__' module is undefined."""
+        return cls(sys.modules["__main__"]._dh[0] if is_running_in_ipython() else File.from_main().parent, settings=settings)
 
     @classmethod
     def from_package(cls, package: ModuleType, settings: Settings = None) -> Dir:

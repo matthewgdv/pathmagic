@@ -20,6 +20,9 @@ if TYPE_CHECKING:
     from .file import File
 
 
+# TODO: Refactor the interface of the Format class in Python 3.10 once the match statement is available
+
+
 class FormatHandler:
     """A class to manage file formats and react accordingly by file extension when reading and writing to/from files."""
     extensions: Set[str] = set()
