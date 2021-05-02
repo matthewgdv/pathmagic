@@ -13,7 +13,7 @@ import pathlib
 from maybe import Maybe
 from subtypes import Str, Html, Xml, Frame, NameSpace, TranslatableMeta
 
-from .path import PathLike
+from .pathmagic import PathLike
 
 if TYPE_CHECKING:
     from .dir import Dir
@@ -348,7 +348,7 @@ class Markup(Format):
         cls.writefuncs.update({extension: open for extension in cls.extensions})
 
     def read(self, **kwargs: Any) -> Any:
-        return self.readfuncs[self.file.extension](self.io.read(),  **kwargs)
+        return self.readfuncs[self.file.extension](self.io.read(), **kwargs)
 
     def write(self, item: Any, **kwargs: Any) -> None:
         self.io.write(str(item), **kwargs)

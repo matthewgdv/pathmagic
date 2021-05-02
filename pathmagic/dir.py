@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 import sys
-import pathlib
+from pathlib import Path
 import shutil
 import zipfile
 from tempfile import gettempdir
@@ -15,12 +15,13 @@ from appdirs import user_data_dir, site_data_dir
 from maybe import Maybe
 from subtypes import Str
 
-from .accessor import FileAccessor, DirAccessor, FileDotAccessor, DirDotAccessor
-from .path import Path, PathLike, Settings, is_running_in_ipython
+from .pathmagic import PathMagic, PathLike, Settings
 from .file import File
+from .accessor import FileAccessor, DirAccessor
+from .helper import is_running_in_ipython
 
 
-class Dir(Path):
+class Dir(PathMagic):
     """
     ORM class for manipulating directories in the filesystem.
 
@@ -32,33 +33,24 @@ class Dir(Path):
     """
 
     def __init__(self, path: PathLike = "", settings: Settings = None) -> None:
-        self._path: Optional[pathlib.Path] = None
+        self._path: Optional[Path] = None
         self._parent: Optional[Dir] = None
-        self._files: dict[str, Optional[File]] = {}
-        self._dirs: dict[str, Optional[Dir]] = {}
-        self._cwd_stack = []
-        self._forbidden = False
+        self._cwd_stack: list[Path] = []
 
-        self.settings = settings or self.Settings.from_default()
+        self.settings = self.Settings.from_settings(settings)
 
         self._set_params(path, move=False)
         self.create()
 
-        self.files, self.dirs = FileAccessor(self), DirAccessor(self)
-        self.f, self.d = FileDotAccessor(self.files), DirDotAccessor(self.dirs)
-        self._synchronize_files(), self._synchronize_dirs()
+        self.files = self.f = FileAccessor(self)
+        self.dirs = self.d = DirAccessor(self)
+        self.files(), self.dirs()
 
     def __repr__(self) -> str:
         try:
-            if not self._forbidden:
-                return f"{type(self).__name__}(path={repr(self.path)}, files={len(self.files)}, dirs={len(self.dirs)})"
-            else:
-                return f"{type(self).__name__}(path={repr(self.path)}, forbidden=True)"
+            return f"{type(self).__name__}(path={repr(self.path)}, files={len(self.files)}, dirs={len(self.dirs)})"
         except FileNotFoundError:
             return f"{type(self).__name__}(path={repr(self.path)}, deleted=True)"
-
-    def __call__(self, full_path: bool = False) -> list[str]:
-        return sum([accessor(full_path=full_path) for accessor in (self.files, self.dirs)], [])
 
     def __len__(self) -> int:
         return len(self.files()) + len(self.dirs())
@@ -76,7 +68,7 @@ class Dir(Path):
         return (pathlike for generator in (iter(self.dirs), iter(self.files)) for pathlike in generator)
 
     def __enter__(self) -> Dir:
-        self._cwd_stack.append(os.getcwd())
+        self._cwd_stack.append(Path.cwd())
         os.chdir(str(self))
         return self
 
@@ -84,7 +76,7 @@ class Dir(Path):
         os.chdir(self._cwd_stack.pop(-1))
 
     @property
-    def path(self) -> pathlib.Path:
+    def path(self) -> Path:
         """Return or set the Dir's full path as a string. Implicitly calls the 'move' method when set."""
         return self._path
 
@@ -96,7 +88,7 @@ class Dir(Path):
     def parent(self) -> Dir:
         """Return or set the Dir's parent directory as a Dir object."""
         if self._parent is None:
-            self._parent = self.settings.dir_class(os.path.dirname(str(self.path)), settings=self.settings)
+            self._parent = self.settings.dir_class(self.path.parent, settings=self.settings)
         return self._parent
 
     @parent.setter
@@ -119,12 +111,12 @@ class Dir(Path):
 
     def rename(self, name: str) -> Dir:
         """Rename this Dir to the specified value. Returns self."""
-        self._set_params(str(self.parent.path.joinpath(name)))
+        self._set_params(self.path.with_name(name))
         return self
 
     def new_rename(self, name: str) -> Dir:
         """Rename a new copy of this Dir in-place to the specified value. Returns the copy."""
-        return self.new_copy(self.parent.path.joinpath(name))
+        return self.new_copy(self.path.with_name(name))
 
     def new_copy(self, path: PathLike) -> Dir:
         """Create a new copy of this Dir at the specified path. Returns the copy."""
@@ -133,8 +125,8 @@ class Dir(Path):
 
     def copy(self, path: PathLike) -> Dir:
         """Create a new copy of this Dir at the specified path. Returns self."""
-        self._validate(path)
-        shutil.copytree(self, os.path.abspath(path))
+        self._validate(path := Path(path).resolve())
+        shutil.copytree(self, path)
         return self
 
     def new_copy_to(self, directory: PathLike) -> Dir:
@@ -150,7 +142,7 @@ class Dir(Path):
 
     def move(self, path: PathLike) -> Dir:
         """Move this this Dir to the specified path. Returns self."""
-        self._validate(path)
+        self._validate(path := Path(path).resolve())
         self._set_params(path)
         return self
 
@@ -171,50 +163,47 @@ class Dir(Path):
 
     def clear(self) -> Dir:
         """Delete all files and directories contained within this Dir."""
-        for pathlike in self:
-            pathlike.delete()
+        for accessor in (self.files, self.dirs):
+            for pathlike in accessor:
+                pathlike.delete()
 
-        self._synchronize_files()
-        self._synchronize_dirs()
+        self.files(), self.dirs()
 
         return self
 
-    def make_file(self, name: str, extension: str = None) -> Dir:
+    def make_file(self, name_or_stem: str, *, extension: str = None) -> Dir:
         """Instantiate a new File with the specified name within this Dir. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns self."""
-        newpath = self.path.joinpath(f"{name}{('.' + Maybe(extension)).else_('')}")
-        self._prepare_file_if_not_exists(newpath)
+        self._prepare_file_if_not_exists(self._parse_filename_args(name_or_stem, extension=extension))
         return self
 
-    def new_file(self, name: str, extension: str = None) -> File:
+    def new_file(self, name_or_stem: str, *, extension: str = None) -> File:
         """Instantiate a new File with the specified name within this Dir. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns that File."""
-        name = f"{name}{('.' + Maybe(extension)).else_('')}"
-        self._bind(self.settings.file_class(self.path.joinpath(name), settings=self.settings), preserve_original=True)
-        return self._files[name]
+        path = self._parse_filename_args(name_or_stem, extension=extension)
+        self._bind(self.settings.file_class(path, settings=self.settings), preserve_original=True)
+        return self.files[path.name]
 
     def make_dir(self, name: str) -> Dir:
         """Instantiate a new Dir with the specified name within this Dir. Returns self."""
-        newpath = self.path.joinpath(name)
-        self._prepare_dir_if_not_exists(newpath)
+        self._prepare_dir_if_not_exists(self.path.joinpath(name))
         return self
 
     def new_dir(self, name: str) -> Dir:
         """Instantiate a new Dir with the specified name within this Dir. Returns that Dir."""
         self._bind(self.settings.dir_class(self.path.joinpath(name), settings=self.settings), preserve_original=True)
-        return self._dirs[name]
+        return self.dirs[name]
 
     def join_file(self, path: PathLike) -> File:
         """Join this path to a relative path ending in a file and return that path as a File object."""
-        clean = os.fspath(path).strip("\\/")
-        return self.settings.file_class(self.path.joinpath(clean), settings=self.settings)
+        return self.settings.file_class(self.path.joinpath(Path(path)), settings=self.settings)
 
     def join_dir(self, path: PathLike) -> Dir:
         """Join this path to a relative path ending in a folder and return that path as a Dir object."""
-        clean = os.fspath(path).strip("\\/")
-        return self.settings.dir_class(self.path.joinpath(clean), settings=self.settings)
+        return self.settings.dir_class(self.path.joinpath(Path(path)), settings=self.settings)
 
     def symlink_to(self, target: PathLike, name: str = None) -> None:
         """Create a symlink to the given target. If the name of the symlink is not given, the basename of the target will be used. """
-        pathlib.Path(self).joinpath(Maybe(name).else_(os.path.basename(target))).symlink_to(target=target, target_is_directory=os.path.isdir(target))
+        target = Path(target)
+        Path(self).joinpath(Maybe(name).else_(target.name)).symlink_to(target=target, target_is_directory=target.is_dir())
 
     def seek_files(self, depth: int = None, name: str = None, parent_path: str = None, content: str = None, extensions: Collection[str] = None, re_flags: int = 0) -> Iterator[File]:
         """
@@ -299,9 +288,10 @@ class Dir(Path):
             yield from (((directory, None), iter([])) for directory in self.dirs if directory.name not in other.dirs())
             yield from (((None, directory), iter([])) for directory in other.dirs if directory.name not in self.dirs())
 
-    def compress(self, name: str = None, **kwargs: Any) -> File:
+    def compress(self, path: PathLike = None, **kwargs: Any) -> File:
         """Compress the content of this dir into a '.zip' archive of the chosen name, and place it into this Dir's parent Dir. Then return that zip File. If no name is given, this Dir's name will be used (plus '.zip' extension)."""
-        outfile: File = self.parent.new_file(f"{Maybe(name).else_(self.name)}.zip")
+        outfile = self.parent.new_file(self.name, extension="zip") if path is None else self.settings.file_class.from_pathlike(path, settings=self.settings)
+
         with zipfile.ZipFile(outfile, mode="w", compression=zipfile.ZIP_DEFLATED, **kwargs) as zipper:
             for directory, dirs, files in self.walk():
                 for path in (item for itemtype in (dirs, files) for item in cast(Iterator, itemtype)):
@@ -324,7 +314,7 @@ class Dir(Path):
     @classmethod
     def from_home(cls, settings: Settings = None) -> Dir:
         """Create a Dir representing the HOME path."""
-        return cls(pathlib.Path.home(), settings=settings)
+        return cls(Path.home(), settings=settings)
 
     @classmethod
     def from_desktop(cls, settings: Settings = None) -> Dir:
@@ -334,12 +324,12 @@ class Dir(Path):
     @classmethod
     def from_cwd(cls, settings: Settings = None) -> Dir:
         """Create a Dir representing the current working directory."""
-        return cls(os.getcwd(), settings=settings)
+        return cls(Path.cwd(), settings=settings)
 
     @classmethod
     def from_root(cls, settings: Settings = None) -> Dir:
         """Create a Dir representing the root of the current drive."""
-        return cls(pathlib.Path.cwd().drive + os.sep, settings=settings)
+        return cls(Path.cwd().drive + os.sep, settings=settings)
 
     @classmethod
     def from_main(cls, settings: Settings = None) -> Dir:
@@ -384,67 +374,29 @@ class Dir(Path):
 
     def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True) -> None:
         """
-        Acquire a reference to the specified File or Dir in this object's 'files' or 'dirs' property, and in return provide that object a reference to this Dir as its 'parent' property.
-        The target File or Dir will be copied and placed in this Dir if the 'preserve_original' argument is true, otherwise it will be moved instead.
+        Acquire a reference to the specified File or Dir in this object's 'files' or 'dirs' accessor, and in return provide that object a reference to this Dir as its 'parent' property.
+        The target File or Dir will be copied and placed in this Dir if the 'preserve_original' argument is true, otherwise it will be moved.
         """
-        pathlike = existing_object if self == os.path.dirname(existing_object) else (existing_object.new_copy(self.path.joinpath(existing_object.name)) if preserve_original else existing_object.move(self.path.joinpath(existing_object.name)))
+        pathlike = (
+            existing_object if self == Path(existing_object).parent else (
+                existing_object.new_copy(self.path.joinpath(existing_object.name)) if preserve_original else (
+                    existing_object.move(self.path.joinpath(existing_object.name))
+                )
+            )
+        )
         pathlike._parent = self
 
         if issubclass(type(pathlike), File) and issubclass(type(pathlike), Dir):
             raise TypeError(f"Objects to bind must be {File.__name__} or {Dir.__name__} (or some subclass), but may not inherit from both.")
         elif issubclass(type(pathlike), File):
-            self._files[pathlike.name] = pathlike
+            self.files[pathlike.name] = pathlike
         elif issubclass(type(pathlike), Dir):
-            self._dirs[pathlike.name] = pathlike
+            self.dirs[pathlike.name] = pathlike
         else:
             raise TypeError(f"Objects to bind must be {File.__name__} or {Dir.__name__} (or some subclass), not {type(existing_object).__name__}")
 
-    def _synchronize_files(self) -> None:
-        try:
-            real_files = [item.name for item in os.scandir(self) if item.is_file()]
-            new_files = {name: self._files.get(name) for name in real_files}
-            self._files.clear()
-            self._files.update(new_files)
-            self.f._acquire(real_files)
-        except PermissionError:
-            self._forbidden = True
-
-    def _synchronize_dirs(self) -> None:
-        try:
-            real_dirs = [item.name for item in os.scandir(self) if item.is_dir()]
-            new_dirs = {name: self._dirs.get(name) for name in real_dirs}
-            self._dirs.clear()
-            self._dirs.update(new_dirs)
-            self.d._acquire(real_dirs)
-        except PermissionError:
-            self._forbidden = True
-
-    def _access_files(self, name: str) -> File:
-        try:
-            file = self._files[name]
-        except KeyError:
-            self._synchronize_files()
-            try:
-                file = self._files[name]
-            except KeyError:
-                raise FileNotFoundError(f"File '{name}' not found in '{self}'")
-
-        return file if file is not None else self.new_file(name)
-
-    def _access_dirs(self, name: str) -> Dir:
-        try:
-            folder = self._dirs[name]
-        except KeyError:
-            self._synchronize_dirs()
-            try:
-                folder = self._dirs[name]
-            except KeyError:
-                raise FileNotFoundError(f"Dir '{name}' not found in '{self}'")
-
-        return folder if folder is not None else self.new_dir(name)
-
-    def _set_params(self, path: str, move: bool = True) -> None:
-        path_obj = pathlib.Path(os.path.abspath(path))
+    def _set_params(self, path: PathLike, move: bool = True) -> None:
+        path_obj = Path(path).resolve()
 
         if move:
             shutil.move(self, path_obj)
@@ -455,7 +407,11 @@ class Dir(Path):
                         file_inclusion: str = None, file_exclusion: str = None, dir_inclusion: str = None, dir_exclusion: str = None) -> None:
 
         for filename in self.files():
-            if (file_inclusion is None or Str(filename).re.search(file_inclusion) is not None) and (file_exclusion is None or Str(filename).re.search(file_exclusion) is None):
+            if (
+                file_inclusion is None or Str(filename).re.search(file_inclusion) is not None
+            ) and (
+                file_exclusion is None or Str(filename).re.search(file_exclusion) is None
+            ):
                 outlist.append(f"{padding} |")
                 outlist.append(f"{padding} +--{filename}")
 

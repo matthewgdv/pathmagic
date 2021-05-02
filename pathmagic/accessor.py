@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import os
 from abc import ABC
-from typing import Any, Callable, Dict, List, Union, TYPE_CHECKING, Optional
+from typing import Any, TYPE_CHECKING
 
 from subtypes import Str
 
+from .helper import is_running_in_ipython, is_special
+
 if TYPE_CHECKING:
+    from .pathmagic import PathMagic
     from .dir import Dir
     from .file import File
 
@@ -15,124 +18,118 @@ class Accessor(ABC):
     """Utility class for managing item access to the underlying files and dirs held by Dir objects."""
 
     def __init__(self, parent: Dir) -> None:
-        self.parent = parent
-        self._access = self._sync = None  # type: Optional[Callable]
-        self._collection: Optional[dict] = None
+        self._parent_ = parent
+        self._items_: dict[str, PathMagic] = {}
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}(num_items={len(self)}, items={list(self._collection)})"
+        return f"{type(self).__name__}(num_items={len(self)}, items={list(self._items_)})"
 
-    def __call__(self, full_path: bool = False) -> list[str]:
-        self._sync()
-        return [filename if not full_path else os.path.join(self.parent, filename) for filename in self._collection]
+    def __call__(self, name_only: bool = False) -> list[str]:
+        self._synchronize_()
+        return [name if name_only else os.path.join(self._parent_, name) for name in self._items_]
 
     def __len__(self) -> int:
-        self._sync()
-        return len(self._collection)
+        self._synchronize_()
+        return len(self._items_)
 
     def __iter__(self) -> Any:
-        return (self[name] for name in self())
+        return (self[name] for name in self(name_only=True))
 
     def __contains__(self, other: os.PathLike) -> bool:
-        with self.parent:
-            return os.path.abspath(other) in self(full_path=True)
+        with self._parent_:
+            return os.path.abspath(other) in self(name_only=False)
 
-    def __getitem__(self, key: str) -> Union[File, Dir]:
-        return self._access(key)
+    def __getitem__(self, key: str) -> PathMagic:
+        raise NotImplementedError
+
+    def __setitem__(self, key: str, val: PathMagic) -> None:
+        self._items_[key] = val
 
     def __delitem__(self, key: str) -> None:
         self[key].delete()
+
+    def __getattribute__(self, name: str) -> PathMagic:
+        if isinstance(val := object.__getattribute__(self, name), Name):
+            return val.access()
+
+        return val
+
+    def __getattr__(self, name: str) -> Any:
+        if is_special(name):
+            raise AttributeError(name)
+
+        self._synchronize_()
+        return self[name]
+
+    def _synchronize_(self) -> None:
+        raise NotImplementedError
+
+    def _acquire_(self, names: list[str]) -> None:
+        if is_running_in_ipython():
+            name_mappings: dict[str, list[str]] = {}
+
+            for name in names:
+                if not is_special(name):
+                    clean = (Str(name).slice.before_first(r"\.") or Str(name)).case.identifier()
+                    name_mappings.setdefault(clean, []).append(name)
+
+            for stale_key in (set(name for name in self.__dict__ if not is_special(name)) - set(name_mappings)):
+                delattr(self, stale_key)
+
+            for new_key in (set(name_mappings) - set(self.__dict__)):
+                setattr(self, new_key, Name(clean_name=new_key, raw_names=name_mappings[new_key], accessor=self))
 
 
 class FileAccessor(Accessor):
     """Utility class for managing item access to the underlying files held by Dir objects."""
 
-    def __init__(self, parent: Dir):
-        super().__init__(parent=parent)
-        self._sync, self._access, self._collection = self.parent._synchronize_files, self.parent._access_files, self.parent._files
-
     def __getitem__(self, key: str) -> File:
-        return self._access(key)
+        try:
+            file = self._items_[key]
+        except KeyError:
+            self._synchronize_()
+            try:
+                file = self._items_[key]
+            except KeyError:
+                raise FileNotFoundError(f"File '{key}' not found in '{self}'")
+
+        return file if file is not None else self._parent_.new_file(key)
+
+    def _synchronize_(self) -> None:
+        try:
+            real_files = [item.name for item in os.scandir(self._parent_) if item.is_file()]
+            new_files = {name: self._items_.get(name) for name in real_files}
+            self._items_.clear()
+            self._items_.update(new_files)
+            self._acquire_(names=real_files)
+        except PermissionError:
+            pass
 
 
 class DirAccessor(Accessor):
     """Utility class for managing item access to the underlying dirs held by Dir objects."""
 
-    def __init__(self, parent: Dir):
-        super().__init__(parent=parent)
-        self._sync, self._access, self._collection = self.parent._synchronize_dirs, self.parent._access_dirs, self.parent._dirs
-
     def __getitem__(self, key: str) -> Dir:
-        return self._access(key)
+        try:
+            dir = self._items_[key]
+        except KeyError:
+            self._synchronize_()
+            try:
+                dir = self._items_[key]
+            except KeyError:
+                raise FileNotFoundError(f"Dir '{key}' not found in '{self}'")
 
+        return dir if dir is not None else self._parent_.new_dir(key)
 
-class DotAccessor:
-    """Utility class for managing item access to the underlying files and dirs held by Dir objects using attribute access."""
-    _strip_extension: bool = None
-
-    def __init__(self, accessor: Accessor) -> None:
-        self._accessor = accessor
-        self._mappings: dict[str, list[str]] = {}
-        self._pending: list[str] = []
-
-    def __getattribute__(self, name: str) -> Any:
-        val = object.__getattribute__(self, name)
-        if isinstance(val, Name):
-            return object.__getattribute__(self, "_accessor")[val.name]
-        else:
-            return val
-
-    def __getattr__(self, name: str) -> Any:
-        if name.startswith("__"):
-            raise AttributeError(name)
-        else:
-            names = self._mappings.get(name)
-            if names is None:
-                self._accessor._sync()
-                if self._accessor.parent.settings.lazy:
-                    self.__acquire_references_as_attributes()
-                names = self._mappings.get(name)
-
-            if names is None:
-                return self._accessor[name]
-            else:
-                if len(names) > 1:
-                    raise AmbiguityError(f"""'{name}' does not resolve uniquely. Could refer to any of: {", ".join([f"'{fullname}'" for fullname in names])}.""")
-                else:
-                    return self._accessor[names[0]]
-
-    def _acquire(self, names: list[str]) -> None:
-        self._pending = names
-        if not self._accessor.parent.settings.lazy:
-            self.__acquire_references_as_attributes()
-
-    def __acquire_references_as_attributes(self) -> None:
-        self._mappings.clear()
-        for name in self._pending:
-            clean = str((Str(name).slice.before_first(r"\.") if type(self)._strip_extension else Str(name)).case.identifier())
-            self._mappings.setdefault(clean, []).append(name)
-
-        self._pending.clear()
-
-        for clean, names in self._mappings.items():
-            if len(names) == 1:
-                setattr(self, clean, Name(name=names[0]))
-
-
-class FileDotAccessor(DotAccessor):
-    """Utility class for managing item access to the underlying files held by Dir objects using attribute access."""
-    _strip_extension = True
-
-    def __getattr__(self, attr: str) -> File:
-        return super().__getattr__(attr)
-
-
-class DirDotAccessor(DotAccessor):
-    """Utility class for managing item access to the underlying dirs held by Dir objects using attribute access."""
-    _strip_extension = False
-
-    def __getattr__(self, attr: str) -> Dir:
-        return super().__getattr__(attr)
+    def _synchronize_(self) -> None:
+        try:
+            real_dirs = [item.name for item in os.scandir(self._parent_) if item.is_dir()]
+            new_dirs = {name: self._items_.get(name) for name in real_dirs}
+            self._items_.clear()
+            self._items_.update(new_dirs)
+            self._acquire_(names=real_dirs)
+        except PermissionError:
+            pass
 
 
 class AmbiguityError(RuntimeError):
@@ -140,8 +137,15 @@ class AmbiguityError(RuntimeError):
 
 
 class Name:
-    def __init__(self, name: str) -> None:
-        self.name = name
+    def __init__(self, clean_name, raw_names: list[str], accessor: Accessor) -> None:
+        self.clean_name, self.raw_names, self.accessor = clean_name, raw_names, accessor
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}('{self.name}')"
+        return f"{type(self).__name__}('{self.clean_name}')"
+
+    def access(self):
+        if len(self.raw_names) == 1:
+            name, = self.raw_names
+            return self.accessor[name]
+        else:
+            raise AmbiguityError(f"""'{self.clean_name}' does not resolve uniquely. Could refer to any of: {", ".join([f"'{name}'" for name in self.raw_names])}.""")

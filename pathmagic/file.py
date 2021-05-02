@@ -6,37 +6,37 @@ import sys
 import zipfile
 from typing import Any, Iterator, TYPE_CHECKING, Optional
 from types import ModuleType
-import pathlib
+from pathlib import Path
 
 from maybe import Maybe
 from subtypes import Process
 
-from .path import Path, PathLike, Settings
+from .pathmagic import PathMagic, PathLike, Settings
 from .formats import FormatHandler, Default
 
 if TYPE_CHECKING:
     from .dir import Dir
 
 
-class File(Path):
+class File(PathMagic):
     """
     ORM class for manipulating files in the filesystem.
 
     Item access can be used to retrieve, set and delete the lines in the file. The len() represents the number of lines, the str() returns the file's path,
     the bool() resolves to true if the file is not empty, and iteration yields one line at a time. Changes to any object property (setting it) will be reflected in the file system.
 
-    The object's File.name, File.stem (name without extension), File.extension, File.parent (as a Dir object), File.path (as a pathlib.Path) are properties that will cause the relevant changes in the
+    The object's File.name, File.stem (name without extension), File.extension, File.parent (as a Dir object), File.path (as a pathlib.PathMagic) are properties that will cause the relevant changes in the
     filesystem when set.
     """
 
     format = FormatHandler.formats
 
     def __init__(self, path: PathLike, settings: Settings = None) -> None:
-        self._path: Optional[pathlib.Path] = None
+        self._path: Optional[Path] = None
         self._content: Any = None
         self._parent: Optional[Dir] = None
 
-        self.settings = settings or self.Settings.from_default()
+        self.settings = self.Settings.from_settings(settings)
 
         self._set_params(path, move=False)
         self.create()
@@ -75,7 +75,7 @@ class File(Path):
         self.write("\n".join(aslist))
 
     @property
-    def path(self) -> pathlib.Path:
+    def path(self) -> Path:
         """Return or set the File's full path as a string. Implicitly calls the 'move' method."""
         return self._path
 
@@ -101,7 +101,7 @@ class File(Path):
 
     @name.setter
     def name(self, val: str) -> None:
-        self.rename(name=val)
+        self.rename(val)
 
     @property
     def stem(self) -> str:
@@ -110,19 +110,16 @@ class File(Path):
 
     @stem.setter
     def stem(self, val: str) -> None:
-        self.rename(name=val, extension=self.extension)
+        self.rename(val, extension=self.extension)
 
     @property
     def extension(self) -> str:
-        """Return or set the File's extension. Is always saved and returned as lower-cased regardless of how the filename is cased. Implicitly calls the 'rename' method."""
+        """Return or set the File's extension. Is always saved and returned in lower-case regardless of how the filename is cased. Implicitly calls the 'rename' method when set."""
         return self.path.suffix.strip(".").lower()
 
     @extension.setter
     def extension(self, val: str) -> None:
-        if not ((val.startswith(".") and val.count(".") == 1) or val.count(".") == 0):
-            raise ValueError(f"Too many '.' in extension name '{val}', or '.' not at start of string. 1 or 0 allowed. If 0, '.' will be set implicitly.")
-
-        self.rename(name=self.stem, extension=val)
+        self.rename(self.stem, extension=val)
 
     @property
     def content(self) -> Any:
@@ -177,14 +174,14 @@ class File(Path):
 
         return self
 
-    def rename(self, name: str, extension: str = None) -> File:
+    def rename(self, name_or_stem: str, *, extension: str = None) -> File:
         """Rename this File to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns self."""
-        self._set_params(self.parent.path.joinpath(f"{name}{self._clean_extension(extension)}"), move=True)
+        self._set_params(self._parse_filename_args(name_or_stem, extension=extension), move=True)
         return self
 
-    def new_rename(self, name: str, extension: str = None) -> File:
+    def new_rename(self, name_or_stem: str, *, extension: str = None) -> File:
         """Rename a new copy of this File in-place to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns the copy."""
-        return self.new_copy(self.parent.path.joinpath(f"{name}{self._clean_extension(extension)}"))
+        return self.new_copy(self._parse_filename_args(name_or_stem, extension=extension))
 
     def new_copy(self, path: PathLike) -> File:
         """Create a new copy of this File at the specified path. Returns the new File."""
@@ -250,12 +247,12 @@ class File(Path):
     def from_resource(cls, package: ModuleType, name: str, extension: str = None, settings: Settings = None) -> File:
         """Create a File representing a non-python resource file within a python package."""
         from .dir import Dir
-        return Dir.from_package(package, settings=settings).new_file(name=name, extension=extension)
+        return Dir.from_package(package, settings=settings).new_file(name, extension=extension)
 
     def _set_params(self, path: PathLike, move: bool = True) -> None:
-        path_obj = pathlib.Path(os.path.abspath(path))
+        new_path = Path(path).resolve()
 
         if move:
-            shutil.move(self, path_obj)
+            shutil.move(self, new_path)
 
-        self._path, self._parent = path_obj, self._parent if self._parent == path_obj.parent else None
+        self._path, self._parent = new_path, self._parent if self._parent == new_path.parent else None
