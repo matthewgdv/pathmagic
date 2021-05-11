@@ -102,9 +102,11 @@ class PathMagic(os.PathLike):
             if not Path(path).is_file():
                 raise ex
 
-    def _parse_filename_args(self, name_or_stem: str, *, extension: str = None) -> Path:
+    def _parse_filename_args(self, name_or_stem: str, /, extension: str = None) -> Path:
+        raw = self.path.joinpath(name_or_stem)
+
         return (
-            self.path.with_name(name_or_stem)
+            raw.with_suffix(raw.suffix.lower())
             if extension is None else
-            self.path.with_stem(name_or_stem).with_suffix(extension)
+            raw.with_suffix(f".{extension.strip('.').lower()}")
         )

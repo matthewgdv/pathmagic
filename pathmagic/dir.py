@@ -171,12 +171,12 @@ class Dir(PathMagic):
 
         return self
 
-    def make_file(self, name_or_stem: str, *, extension: str = None) -> Dir:
+    def make_file(self, name_or_stem: str, /, extension: str = None) -> Dir:
         """Instantiate a new File with the specified name within this Dir. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns self."""
         self._prepare_file_if_not_exists(self._parse_filename_args(name_or_stem, extension=extension))
         return self
 
-    def new_file(self, name_or_stem: str, *, extension: str = None) -> File:
+    def new_file(self, name_or_stem: str, /, extension: str = None) -> File:
         """Instantiate a new File with the specified name within this Dir. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns that File."""
         path = self._parse_filename_args(name_or_stem, extension=extension)
         self._bind(self.settings.file_class(path, settings=self.settings), preserve_original=True)

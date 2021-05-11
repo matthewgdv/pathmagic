@@ -5,10 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="feb04e6a-0ad0-44d6-81d4-781f425e8c1e" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/pathmagic.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/pathmagic.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pathmagic/dir.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/dir.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pathmagic/file.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/file.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pathmagic/formats.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/formats.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pathmagic/pathmagic.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/pathmagic.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,6 +65,8 @@
       <workItem from="1617985201253" duration="3523000" />
       <workItem from="1617995177635" duration="812000" />
       <workItem from="1618054839993" duration="87000" />
+      <workItem from="1620504441417" duration="308000" />
+      <workItem from="1620682587822" duration="3166000" />
     </task>
     <servers />
   </component>

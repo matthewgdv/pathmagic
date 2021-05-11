@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional, Set, Type, TYPE_CHECKING
 import pathlib
 
 from maybe import Maybe
-from subtypes import Str, Html, Xml, Frame, NameSpace, TranslatableMeta
+from subtypes import Str, Html, Xml, NameSpace, TranslatableMeta
 
 from .pathmagic import PathLike
 
@@ -143,6 +143,7 @@ class Tabular(Format):
     @classmethod
     def initialize(cls) -> None:
         import pandas as pd
+        from sqlhandler import Frame
 
         cls.module = pd
         cls.readfuncs.update({"xlsx": Frame.from_excel, "csv": Frame.from_csv})

@@ -174,12 +174,12 @@ class File(PathMagic):
 
         return self
 
-    def rename(self, name_or_stem: str, *, extension: str = None) -> File:
+    def rename(self, name_or_stem: str, /, extension: str = None) -> File:
         """Rename this File to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns self."""
         self._set_params(self._parse_filename_args(name_or_stem, extension=extension), move=True)
         return self
 
-    def new_rename(self, name_or_stem: str, *, extension: str = None) -> File:
+    def new_rename(self, name_or_stem: str, /, extension: str = None) -> File:
         """Rename a new copy of this File in-place to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns the copy."""
         return self.new_copy(self._parse_filename_args(name_or_stem, extension=extension))
 
