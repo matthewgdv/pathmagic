@@ -1,10 +1,6 @@
 # import pytest
 
 
-class TestFileFormats:
-    pass
-
-
 class TestFormatHandler:
     def test_read(self):  # synced
         assert True
@@ -24,17 +20,17 @@ class TestFormatHandler:
     def test__ensure_format(self):  # synced
         assert True
 
-    def test_add_format():  # synced
+    def test_add_format(self):  # synced
         assert True
 
 
 class TestFormatMeta:
-    def test___new__():  # synced
+    def test___new__(self):  # synced
         assert True
 
 
 class TestFormat:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
     def test_read(self):  # synced
@@ -51,12 +47,12 @@ class TestFormat:
 
 
 class TestPdf:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
 
 class TestTabular:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
     def test_read_help(self):  # synced
@@ -67,12 +63,12 @@ class TestTabular:
 
 
 class TestWord:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
 
 class TestImage:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
     def test_write(self):  # synced
@@ -80,7 +76,7 @@ class TestImage:
 
 
 class TestAudio:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
     def test_write_help(self):  # synced
@@ -88,7 +84,7 @@ class TestAudio:
 
 
 class TestVideo:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
     def test_read(self):  # synced
@@ -96,7 +92,7 @@ class TestVideo:
 
 
 class TestCompressed:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
     def test_read(self):  # synced
@@ -110,7 +106,7 @@ class TestCompressed:
 
 
 class TestLink:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
     def test__readlink(self):  # synced
@@ -121,7 +117,7 @@ class TestLink:
 
 
 class TestSerialized:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
     def test_read(self):  # synced
@@ -132,7 +128,7 @@ class TestSerialized:
 
 
 class TestJson:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
     def test_read(self):  # synced
@@ -142,8 +138,8 @@ class TestJson:
         assert True
 
 
-class TestMarkUp:
-    def test_initialize():  # synced
+class TestMarkup:
+    def test_initialize(self):  # synced
         assert True
 
     def test_read(self):  # synced
@@ -154,7 +150,7 @@ class TestMarkUp:
 
 
 class TestDefault:
-    def test_initialize():  # synced
+    def test_initialize(self):  # synced
         assert True
 
     def test_read(self):  # synced

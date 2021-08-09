@@ -3,10 +3,11 @@ from __future__ import annotations
 import os
 from abc import ABC
 from typing import Any, TYPE_CHECKING
+from pathlib import Path
 
 from subtypes import Str
 
-from .helper import is_running_in_ipython, is_special
+from .helper import is_running_in_ipython, is_special, clean_filename
 
 if TYPE_CHECKING:
     from .pathmagic import PathMagic
@@ -24,20 +25,22 @@ class Accessor(ABC):
     def __repr__(self) -> str:
         return f"{type(self).__name__}(num_items={len(self)}, items={list(self._items_)})"
 
-    def __call__(self, name_only: bool = False) -> list[str]:
+    def __call__(self) -> list[str]:
         self._synchronize_()
-        return [name if name_only else os.path.join(self._parent_, name) for name in self._items_]
+        return list(self._items_)
 
     def __len__(self) -> int:
         self._synchronize_()
         return len(self._items_)
 
     def __iter__(self) -> Any:
-        return (self[name] for name in self(name_only=True))
+        return (self[name] for name in self())
 
     def __contains__(self, other: os.PathLike) -> bool:
-        with self._parent_:
-            return os.path.abspath(other) in self(name_only=False)
+        if not (path := Path(other)).is_absolute():
+            path = self._parent_.path.joinpath(path)
+
+        return path.resolve().parent == self._parent_ and path.exists()
 
     def __getitem__(self, key: str) -> PathMagic:
         raise NotImplementedError
@@ -59,7 +62,11 @@ class Accessor(ABC):
             raise AttributeError(name)
 
         self._synchronize_()
-        return self[name]
+
+        if hasattr(self, name):
+            return getattr(self, name)
+        else:
+            raise AttributeError(name)
 
     def _synchronize_(self) -> None:
         raise NotImplementedError
@@ -70,10 +77,11 @@ class Accessor(ABC):
 
             for name in names:
                 if not is_special(name):
-                    clean = (Str(name).slice.before_first(r"\.") or Str(name)).case.identifier()
+                    stem, _ = os.path.splitext(name)
+                    clean = Str(stem).case.identifier()
                     name_mappings.setdefault(clean, []).append(name)
 
-            for stale_key in (set(name for name in self.__dict__ if not is_special(name)) - set(name_mappings)):
+            for stale_key in ({name for name in self.__dict__ if not is_special(name)} - set(name_mappings)):
                 delattr(self, stale_key)
 
             for new_key in (set(name_mappings) - set(self.__dict__)):
@@ -97,7 +105,7 @@ class FileAccessor(Accessor):
 
     def _synchronize_(self) -> None:
         try:
-            real_files = [item.name for item in os.scandir(self._parent_) if item.is_file()]
+            real_files = [clean_filename(item.name) for item in os.scandir(self._parent_) if item.is_file()]
             new_files = {name: self._items_.get(name) for name in real_files}
             self._items_.clear()
             self._items_.update(new_files)

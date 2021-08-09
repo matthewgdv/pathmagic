@@ -1,30 +1,30 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, TYPE_CHECKING, TypeVar
 from pathlib import Path
 
 from send2trash import send2trash
 
-from subtypes import Enum
-
 from .helper import PathLike
 from .settings import Settings
+from .enums import Enums
+
+if TYPE_CHECKING:
+    from .dir import Dir
 
 
 class PathMagic(os.PathLike):
     """Abstract Base Class from which 'File' and 'Dir' objects derive."""
 
-    class Enums:
-        class IfExists(Enum):
-            FAIL = ALLOW = TRASH = Enum.Auto()
+    Enums = Enums
+    Settings = Settings
 
     __subclasshook__ = object.__subclasshook__
 
-    Settings = Settings
-
     settings: Settings
     _path: Path
+    _parent: Dir
 
     def __init__(self, *args: Any, **kwargs: Any):
         raise NotImplementedError(f"Cannot instanciate object of abstract type {type(self).__name__}. Please instanciate one of its subclasses.")
@@ -58,11 +58,45 @@ class PathMagic(os.PathLike):
 
     @property
     def path(self) -> Path:
+        """Return or set the full path as a pathlib.Path object."""
         return self._path
+
+    @path.setter
+    def path(self, val: PathLike) -> None:
+        self.move(val)
+
+    @property
+    def parent(self) -> Dir:
+        """Return or set the parent directory as a Dir object."""
+        if self._parent is None:
+            self._parent = self.settings.dir_class(os.path.dirname(self), settings=self.settings)
+        return self._parent
+
+    @parent.setter
+    def parent(self, val: Dir) -> None:
+        self.settings.dir_class.from_pathlike(val, settings=self.settings)._bind(self, preserve_original=False)
+
+    @property
+    def name(self) -> str:
+        """Return or set the name."""
+        return self.path.name
+
+    @name.setter
+    def name(self, val: str) -> None:
+        self.rename(val)
 
     @property
     def stat(self) -> os.stat_result:
         return os.stat(str(self))
+
+    def create(self) -> PathMagic:
+        raise NotImplementedError
+
+    def rename(self, name: str) -> PathMagic:
+        raise NotImplementedError
+
+    def move(self, path: PathLike) -> PathMagic:
+        raise NotImplementedError
 
     def trash(self) -> PathMagic:
         """Move this object's mapped path to your OS' implementation of a recycling bin. The object will persist and may still be used."""
@@ -78,7 +112,7 @@ class PathMagic(os.PathLike):
 
     def _validate(self, path: Path) -> None:
         if self == path:
-            raise FileExistsError(f"PathMagic '{path}' is already this {type(self).__name__}'s path. Cannot copy or move a {type(self).__name__} to its own path.")
+            raise FileExistsError(f"'{path}' is already this {type(self).__name__}'s path. Cannot copy or move a {type(self).__name__} to its own path.")
         else:
             if path.exists():
                 if self.settings.if_exists is self.Enums.IfExists.ALLOW:
@@ -86,7 +120,7 @@ class PathMagic(os.PathLike):
                 elif self.settings.if_exists is self.Enums.IfExists.TRASH:
                     send2trash(str(path))
                 elif self.settings.if_exists is self.Enums.IfExists.FAIL:
-                    raise FileExistsError(f"PathMagic '{path}' already exists and current setting is '{self.settings.if_exists}'. To change this behaviour change the '{type(self).__name__}.settings.if_exists' attribute.")
+                    raise FileExistsError(f"'{path}' already exists and current setting is '{self.settings.if_exists}'. To change this behaviour change the '{type(self).__name__}.settings.if_exists' attribute.")
                 else:
                     raise NotImplementedError
 
@@ -102,11 +136,14 @@ class PathMagic(os.PathLike):
             if not Path(path).is_file():
                 raise ex
 
-    def _parse_filename_args(self, name_or_stem: str, /, extension: str = None) -> Path:
-        raw = self.path.joinpath(name_or_stem)
+    def _parse_filename_args(self, name: str, /, extension: str = None) -> Path:
+        raw = self.path.joinpath(name)
 
         return (
             raw.with_suffix(raw.suffix.lower())
             if extension is None else
             raw.with_suffix(f".{extension.strip('.').lower()}")
         )
+
+
+P = TypeVar("P", bound=PathMagic)

@@ -4,17 +4,68 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="feb04e6a-0ad0-44d6-81d4-781f425e8c1e" name="Default Changelist" comment="">
+    <list default="true" id="feb04e6a-0ad0-44d6-81d4-781f425e8c1e" name="Default Changelist" comment="Fix minor bugs">
+      <change afterPath="$PROJECT_DIR$/pathmagic/enums.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/audio.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/compressed.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/default.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/format.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/image.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/json.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/link.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/markup.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/pdf.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/serialized.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/tabular.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/video.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pathmagic/format/word.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/integration/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_audio.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_compressed.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_default.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_format.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_image.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_json.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_link.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_markup.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_pdf.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_serialized.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_tabular.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_video.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/format/test_word.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/test_helper.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/test_settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pathmagic/accessor.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/accessor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pathmagic/dir.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/dir.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pathmagic/file.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/file.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pathmagic/formats.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/formats.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pathmagic/helper.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/helper.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pathmagic/pathmagic.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/pathmagic.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pathmagic/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/pathmagic/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_accessor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_accessor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_dir.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_dir.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_file.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_file.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_formats.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_formats.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_path.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_pathmagic.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -28,6 +79,9 @@
     </file-type-list>
   </component>
   <component name="ProjectId" id="1qr5bukz3WBtUPTHazs0YZiQz7D" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="autoscrollToSource" value="true" />
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -36,22 +90,48 @@
     <option name="showMembers" value="true" />
   </component>
   <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="NEW_TOOLWINDOW_STRIPE_DEFAULTS" value="true" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../sandbox" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/tests/unit" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
     <property name="node.js.path.for.package.tslint" value="project" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyIntegratedToolsModulesConfigurable" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\matthewgdv\Documents\python\repos\pathmagic\tests\unit" />
+      <recent name="C:\Users\matthewgdv\Documents\python\repos\pathmagic\pathmagic\format" />
       <recent name="C:\Users\matthewgdv\Documents\python\repos\pathmagic\pathmagic" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="Python tests in tests" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+      <module name="pathmagic" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/tests&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python tests.Python tests in tests" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -67,6 +147,8 @@
       <workItem from="1618054839993" duration="87000" />
       <workItem from="1620504441417" duration="308000" />
       <workItem from="1620682587822" duration="3166000" />
+      <workItem from="1628333598179" duration="38103000" />
+      <workItem from="1628501961368" duration="7973000" />
     </task>
     <servers />
   </component>
@@ -84,5 +166,22 @@
       </map>
     </option>
     <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/tests/unit/test_file.py</url>
+          <line>163</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/pathmagic$.coverage" NAME=" Coverage Results" MODIFIED="1628548503073" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
   </component>
 </project>

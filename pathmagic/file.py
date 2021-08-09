@@ -33,7 +33,6 @@ class File(PathMagic):
 
     def __init__(self, path: PathLike, settings: Settings = None) -> None:
         self._path: Optional[Path] = None
-        self._content: Any = None
         self._parent: Optional[Dir] = None
 
         self.settings = self.Settings.from_settings(settings)
@@ -51,9 +50,10 @@ class File(PathMagic):
 
     def __len__(self) -> int:
         if isinstance(self._format_handler.format, Default):
-            self.read()
+            content = self.read()
+            return content.count('\n') + 1
 
-        return 0 if not isinstance(self._content, str) else self._content.count("\n") + 1
+        return 0
 
     def __bool__(self) -> bool:
         return True if os.path.getsize(self) > 0 else False
@@ -75,37 +75,8 @@ class File(PathMagic):
         self.write("\n".join(aslist))
 
     @property
-    def path(self) -> Path:
-        """Return or set the File's full path as a string. Implicitly calls the 'move' method."""
-        return self._path
-
-    @path.setter
-    def path(self, val: PathLike) -> None:
-        self.move(val)
-
-    @property
-    def parent(self) -> Dir:
-        """Return or set the File's directory as a Dir object. Implicitly calls that Dir object's 'bind' method."""
-        if self._parent is None:
-            self._parent = self.settings.dir_class(os.path.dirname(self), settings=self.settings)
-        return self._parent
-
-    @parent.setter
-    def parent(self, val: Dir) -> None:
-        self.settings.dir_class.from_pathlike(val, settings=self.settings)._bind(self, preserve_original=False)
-
-    @property
-    def name(self) -> str:
-        """Return or set the File's full name, including extension. Implicitly calls the 'rename' method."""
-        return self.path.name
-
-    @name.setter
-    def name(self, val: str) -> None:
-        self.rename(val)
-
-    @property
     def stem(self) -> str:
-        """Return or set the File's name up to the extension. Implicitly calls the 'rename' method."""
+        """Return or set the stem of the name."""
         return self.path.stem
 
     @stem.setter
@@ -114,7 +85,7 @@ class File(PathMagic):
 
     @property
     def extension(self) -> str:
-        """Return or set the File's extension. Is always saved and returned in lower-case regardless of how the filename is cased. Implicitly calls the 'rename' method when set."""
+        """Return or set the extension of the name. Is always saved and returned in lower-case regardless of how the filename is cased."""
         return self.path.suffix.strip(".").lower()
 
     @extension.setter
@@ -138,8 +109,7 @@ class File(PathMagic):
         Return the File's content as a string if it is not encoded, else attempt to return a useful Python object representing the file content (e.g. Pandas DataFrame for tabular files, etc.).
         If provided, **kwargs will be passed on to whichever function will be used to read in the File's content. Call the 'readhelp' method for that function's documentation.
         """
-        self._content = self._format_handler.read(**kwargs)
-        return self._content
+        return self._format_handler.read(**kwargs)
 
     def read_help(self) -> None:
         """
@@ -174,14 +144,14 @@ class File(PathMagic):
 
         return self
 
-    def rename(self, name_or_stem: str, /, extension: str = None) -> File:
+    def rename(self, name: str, /, extension: str = None) -> File:
         """Rename this File to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns self."""
-        self._set_params(self._parse_filename_args(name_or_stem, extension=extension), move=True)
+        self._set_params(self.parent._parse_filename_args(name, extension=extension), move=True)
         return self
 
-    def new_rename(self, name_or_stem: str, /, extension: str = None) -> File:
+    def new_rename(self, name: str, /, extension: str = None) -> File:
         """Rename a new copy of this File in-place to the specified value. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns the copy."""
-        return self.new_copy(self._parse_filename_args(name_or_stem, extension=extension))
+        return self.new_copy(self.parent._parse_filename_args(name, extension=extension))
 
     def new_copy(self, path: PathLike) -> File:
         """Create a new copy of this File at the specified path. Returns the new File."""
@@ -190,15 +160,15 @@ class File(PathMagic):
 
     def copy(self, path: PathLike) -> File:
         """Create a new copy of this File at the specified path. Returns self."""
-        self._validate(path)
+        self._validate(path := path.resolve())
+        self._prepare_dir_if_not_exists(path.parent)
         shutil.copyfile(self, os.path.abspath(path))
         return self
 
     def new_copy_to(self, directory: PathLike) -> File:
         """Create a new copy of this File within the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns the new File."""
         parent = self.settings.dir_class.from_pathlike(directory, settings=self.settings)
-        parent._bind(self)
-        return parent.files[self.name]
+        return parent._bind(self, preserve_original=True)
 
     def copy_to(self, directory: PathLike) -> File:
         """Create a new copy of this File within the specified Dir object. Implicitly calls that Dir's '_bind' method. Returns self."""
@@ -207,7 +177,8 @@ class File(PathMagic):
 
     def move(self, path: PathLike) -> File:
         """Move this this File to the specified path. Returns self."""
-        self._validate(path)
+        self._validate(path := path.resolve())
+        self._prepare_dir_if_not_exists(path.parent)
         self._set_params(path, move=True)
         return self
 

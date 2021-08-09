@@ -15,7 +15,7 @@ from appdirs import user_data_dir, site_data_dir
 from maybe import Maybe
 from subtypes import Str
 
-from .pathmagic import PathMagic, PathLike, Settings
+from .pathmagic import PathMagic, PathLike, Settings, P
 from .file import File
 from .accessor import FileAccessor, DirAccessor
 from .helper import is_running_in_ipython
@@ -75,37 +75,8 @@ class Dir(PathMagic):
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
         os.chdir(self._cwd_stack.pop(-1))
 
-    @property
-    def path(self) -> Path:
-        """Return or set the Dir's full path as a string. Implicitly calls the 'move' method when set."""
-        return self._path
-
-    @path.setter
-    def path(self, val: PathLike) -> None:
-        self.move(val)
-
-    @property
-    def parent(self) -> Dir:
-        """Return or set the Dir's parent directory as a Dir object."""
-        if self._parent is None:
-            self._parent = self.settings.dir_class(self.path.parent, settings=self.settings)
-        return self._parent
-
-    @parent.setter
-    def parent(self, val: Dir) -> None:
-        self.settings.dir_class.from_pathlike(val)._bind(self, preserve_original=False)
-
-    @property
-    def name(self) -> str:
-        """Return or set the Dir's name. Implicitly calls the 'rename' method when set."""
-        return self.path.name
-
-    @name.setter
-    def name(self, val: str) -> None:
-        self.rename(val)
-
     def start(self) -> Dir:
-        """Call the default file system navigator on this Dir's path. Returns self."""
+        """Call the default file system navigator on this path. Returns self."""
         os.startfile(self)
         return self
 
@@ -132,8 +103,7 @@ class Dir(PathMagic):
     def new_copy_to(self, directory: PathLike) -> Dir:
         """Create a new copy of this Dir within the specified path. If passed a Dir object, both objects will acquire references to each other. Returns the copy."""
         parent = self.settings.dir_class.from_pathlike(directory, settings=self.settings)
-        parent._bind(self, preserve_original=True)
-        return parent.dirs[self.name]
+        return parent._bind(self, preserve_original=True)
 
     def copy_to(self, directory: PathLike) -> Dir:
         """Create a new copy of this Dir within the specified path. If passed a Dir object, both objects will acquire references to each other. Returns self."""
@@ -171,16 +141,15 @@ class Dir(PathMagic):
 
         return self
 
-    def make_file(self, name_or_stem: str, /, extension: str = None) -> Dir:
+    def make_file(self, name: str, /, extension: str = None) -> Dir:
         """Instantiate a new File with the specified name within this Dir. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns self."""
-        self._prepare_file_if_not_exists(self._parse_filename_args(name_or_stem, extension=extension))
+        self._prepare_file_if_not_exists(self._parse_filename_args(name, extension=extension))
         return self
 
-    def new_file(self, name_or_stem: str, /, extension: str = None) -> File:
+    def new_file(self, name: str, /, extension: str = None) -> File:
         """Instantiate a new File with the specified name within this Dir. If 'extension' is specified, it will be appended to 'name' with a dot as a separator. Returns that File."""
-        path = self._parse_filename_args(name_or_stem, extension=extension)
-        self._bind(self.settings.file_class(path, settings=self.settings), preserve_original=True)
-        return self.files[path.name]
+        path = self._parse_filename_args(name, extension=extension)
+        return self._bind(self.settings.file_class(path, settings=self.settings), preserve_original=True)
 
     def make_dir(self, name: str) -> Dir:
         """Instantiate a new Dir with the specified name within this Dir. Returns self."""
@@ -189,8 +158,7 @@ class Dir(PathMagic):
 
     def new_dir(self, name: str) -> Dir:
         """Instantiate a new Dir with the specified name within this Dir. Returns that Dir."""
-        self._bind(self.settings.dir_class(self.path.joinpath(name), settings=self.settings), preserve_original=True)
-        return self.dirs[name]
+        return self._bind(self.settings.dir_class(self.path.joinpath(name), settings=self.settings), preserve_original=True)
 
     def join_file(self, path: PathLike) -> File:
         """Join this path to a relative path ending in a file and return that path as a File object."""
@@ -213,25 +181,23 @@ class Dir(PathMagic):
         A maximal recursion depth may optionally be specified. At '0' only local Files may be returned, any Files within one level of subdirectories at '1', etc. Fully recursive if left 'None'.
         """
 
-        if not (parent_path is None or Str(self).re.search(parent_path, flags=re_flags)):
-            return
+        if parent_path is None or Str(self).re.search(parent_path, flags=re_flags):
+            for file in self.files:
+                if (
+                    (extensions is None or file.extension in extensions)
+                    and (name is None or Str(file.stem).re.search(name, flags=re_flags))
+                    and (content is None or Str(file.path.read_text()).re.search(content, flags=re_flags))
+                ):
+                    yield file
 
-        for file in self.files:
-            if (
-                (extensions is None or file.extension in extensions)
-                and (name is None or Str(file.stem).re.search(name, flags=re_flags))
-                and (content is None or (len(file) > 0 and Str(file.content).re.search(content, flags=re_flags)))
-            ):
-                yield file
+            if depth is not None:
+                if depth <= 0:
+                    return
+                else:
+                    depth -= 1
 
-        if depth is not None:
-            if depth <= 0:
-                return
-            else:
-                depth -= 1
-
-        for directory in self.dirs:
-            yield from directory.seek_files(depth=depth, name=name, parent_path=parent_path, content=content, extensions=extensions, re_flags=re_flags)
+            for directory in self.dirs:
+                yield from directory.seek_files(depth=depth, name=name, parent_path=parent_path, content=content, extensions=extensions, re_flags=re_flags)
 
     def seek_dirs(self, depth: int = None, name: str = None, parent_path: str = None, contains_filename: str = None, contains_dirname: str = None, re_flags: int = 0) -> Iterator[Dir]:
         """
@@ -240,25 +206,23 @@ class Dir(PathMagic):
         A maximal recursion depth may optionally be specified. At '0' only local Dirs may be returned, any Dirs within one level of subfolders at '1', etc. Fully recursive if left 'None'.
         """
 
-        if not (parent_path is None or Str(self).re.search(parent_path, flags=re_flags)):
-            return
+        if parent_path is None or Str(self).re.search(parent_path, flags=re_flags):
+            for directory in self.dirs:
+                if (
+                    (name is None or Str(directory.name).re.search(name, flags=re_flags))
+                    and (contains_filename is None or any(Str(file.name).re.search(contains_filename, flags=re_flags) is not None for file in directory.files))
+                    and (contains_dirname is None or any(Str(subdir.name).re.search(contains_dirname, flags=re_flags) is not None for subdir in directory.dirs))
+                ):
+                    yield directory
 
-        for directory in self.dirs:
-            if (
-                (name is None or Str(directory.name).re.search(name, flags=re_flags))
-                and (contains_filename is None or any([Str(file.name).re.search(contains_filename, flags=re_flags) is not None for file in directory.files]))
-                and (contains_dirname is None or any([Str(subdir.name).re.search(contains_dirname, flags=re_flags) is not None for subdir in directory.dirs]))
-            ):
-                yield directory
+            if depth is not None:
+                if depth <= 0:
+                    return
+                else:
+                    depth -= 1
 
-        if depth is not None:
-            if depth <= 0:
-                return
-            else:
-                depth -= 1
-
-        for directory in self.dirs:
-            yield from directory.seek_dirs(depth=depth, name=name, parent_path=parent_path, contains_filename=contains_filename, contains_dirname=contains_dirname, re_flags=re_flags)
+            for directory in self.dirs:
+                yield from directory.seek_dirs(depth=depth, name=name, parent_path=parent_path, contains_filename=contains_filename, contains_dirname=contains_dirname, re_flags=re_flags)
 
     def walk(self, depth: int = None) -> Iterator[Tuple[Dir, DirAccessor, FileAccessor]]:
         """Iterate recursively over this Dir and all subdirs, yielding a 3-tuple of: Tuple[directory, directory.dirs, directory.files]."""
@@ -267,11 +231,11 @@ class Dir(PathMagic):
 
     def compare_files(self, other: Dir, include_unmatched: bool = False) -> Iterator[Tuple[File, File]]:
         """Yield 2-tuples of all files with matching names and extensions within this Dir, and some 'other' Dir."""
-        yield from ((file, other.files[file.name]) for file in self.files if file.name in other.files())
+        yield from ((file, other.files[file.name]) for file in self.files if file.name in other.files)
 
         if include_unmatched:
-            yield from ((file, None) for file in self.files if file.name not in other.files())
-            yield from ((None, file) for file in other.files if file.name not in self.files())
+            yield from ((file, None) for file in self.files if file.name not in other.files)
+            yield from ((None, file) for file in other.files if file.name not in self.files)
 
     def compare_tree(self, other: Dir, include_unmatched: bool = False) -> Iterator[Tuple[Tuple[Dir, Dir], Iterator[Tuple[File, File]]]]:
         """
@@ -281,12 +245,12 @@ class Dir(PathMagic):
         """
         yield (self, other), self.compare_files(other, include_unmatched=include_unmatched)
         for directory in self.dirs:
-            if directory.name in other.dirs():
+            if directory.name in other.dirs:
                 yield from directory.compare_tree(other.dirs[directory.name])
 
         if include_unmatched:
-            yield from (((directory, None), iter([])) for directory in self.dirs if directory.name not in other.dirs())
-            yield from (((None, directory), iter([])) for directory in other.dirs if directory.name not in self.dirs())
+            yield from (((directory, None), iter([])) for directory in self.dirs if directory.name not in other.dirs)
+            yield from (((None, directory), iter([])) for directory in other.dirs if directory.name not in self.dirs)
 
     def compress(self, path: PathLike = None, **kwargs: Any) -> File:
         """Compress the content of this dir into a '.zip' archive of the chosen name, and place it into this Dir's parent Dir. Then return that zip File. If no name is given, this Dir's name will be used (plus '.zip' extension)."""
@@ -318,8 +282,15 @@ class Dir(PathMagic):
 
     @classmethod
     def from_desktop(cls, settings: Settings = None) -> Dir:
-        """Create a Dir representing the desktop, which must be named 'Desktop' (case-sensitive) and exist within the HOME directory."""
-        return cls.from_home(settings=settings).dirs["Desktop"]
+        """Create a Dir representing the desktop. Only works on Windows."""
+        if sys.platform == 'win32':
+            # noinspection PyUnresolvedReferences
+            from win32com.shell import shell, shellcon
+
+            desktop = shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
+            return cls(desktop, settings=settings)
+        else:
+            raise OSError(f"Unable to determine the desktop location on OS {sys.platform}")
 
     @classmethod
     def from_cwd(cls, settings: Settings = None) -> Dir:
@@ -362,8 +333,9 @@ class Dir(PathMagic):
 
     @classmethod
     @contextmanager
-    def temp(cls, settings: Settings = None) -> Dir:
-        temp_dir = cls(path=gettempdir(), settings=settings).new_dir("pythontemp").clear()
+    def from_temp(cls, settings: Settings = None) -> Dir:
+        temp_dir = cls(path=gettempdir(), settings=settings).new_dir('python').clear()
+
         try:
             yield temp_dir
         finally:
@@ -372,7 +344,7 @@ class Dir(PathMagic):
             except FileNotFoundError:
                 pass
 
-    def _bind(self, existing_object: Union[File, Dir], preserve_original: bool = True) -> None:
+    def _bind(self, existing_object: P, preserve_original: bool = True) -> P:
         """
         Acquire a reference to the specified File or Dir in this object's 'files' or 'dirs' accessor, and in return provide that object a reference to this Dir as its 'parent' property.
         The target File or Dir will be copied and placed in this Dir if the 'preserve_original' argument is true, otherwise it will be moved.
@@ -394,6 +366,8 @@ class Dir(PathMagic):
             self.dirs[pathlike.name] = pathlike
         else:
             raise TypeError(f"Objects to bind must be {File.__name__} or {Dir.__name__} (or some subclass), not {type(existing_object).__name__}")
+
+        return pathlike
 
     def _set_params(self, path: PathLike, move: bool = True) -> None:
         path_obj = Path(path).resolve()

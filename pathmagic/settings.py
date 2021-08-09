@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Type, TYPE_CHECKING
 
+from .enums import Enums
+
 if TYPE_CHECKING:
-    from .pathmagic import PathMagic
     from .file import File
     from .dir import Dir
 
@@ -13,7 +14,7 @@ class Settings:
 
     DEFAULT: Settings = None
 
-    def __init__(self, if_exists: PathMagic.Enums.IfExists, file_class: Type[File], dir_class: Type[Dir]) -> None:
+    def __init__(self, if_exists: Enums.IfExists, file_class: Type[File], dir_class: Type[Dir]) -> None:
         self.if_exists, self.file_class, self.dir_class = if_exists, file_class, dir_class
 
     def __repr__(self) -> str:

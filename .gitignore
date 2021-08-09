@@ -118,3 +118,6 @@ localres/
 
 # Temporary workfolders
 __workfolders__/
+
+# Pycharm
+.idea/
