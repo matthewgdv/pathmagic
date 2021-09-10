@@ -114,6 +114,7 @@ class Format(metaclass=FormatMeta):
         raise RuntimeError("Must provide an implementation of Format.initialize(), which will only be called the first time the Format is instanciated. This method should import expensive modules (if needed) and update the Format.readfuncs and Format.writefuncs dictionaries.")
 
     def read(self, **kwargs: Any) -> Any:
+        print(self.file)
         return self.readfuncs[self.file.extension](str(self.file), **kwargs)
 
     def read_help(self) -> None:
