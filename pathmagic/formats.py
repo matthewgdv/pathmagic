@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import os
 import json
 import tarfile
 import zipfile
 from abc import ABCMeta
 from collections import defaultdict
 from types import MethodType
-from typing import Any, Callable, Optional, Set, Type, TYPE_CHECKING
-import pathlib
+from typing import Any, Callable, TYPE_CHECKING
 
-from maybe import Maybe
-from subtypes import Str, Html, Xml, NameSpace, TranslatableMeta
+from subtypes import Str, Html, Xml, TranslatableMeta
 
 from .pathmagic import PathLike
 
@@ -20,277 +17,197 @@ if TYPE_CHECKING:
     from .file import File
 
 
-# TODO: Refactor the interface of the Format class in Python 3.10 once the match statement is available
-
-
-class FormatHandler:
-    """A class to manage file formats and react accordingly by file extension when reading and writing to/from files."""
-    extensions: Set[str] = set()
-    mappings: dict[str, Type[Format]] = {}
-    formats = NameSpace()
-
-    def __init__(self, file: File):
-        self.file = file
-        self.format: Optional[Format] = None
-
-        if self.file.extension not in self.extensions:
-            self._ensure_format()
-
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}(format={type(self.format).__name__ if self.format is not None else None}, file={self.file})"
-
-    def read(self, **kwargs: Any) -> Any:
-        self._ensure_format()
-        return self.format.read(**kwargs)
-
-    def write(self, item: Any, **kwargs: Any) -> Any:
-        self._ensure_format()
-        return self.format.write(item=item, **kwargs)
-
-    def append(self, text: str) -> None:
-        self._ensure_format()
-        if not isinstance(self.format, Default):
-            raise RuntimeError(f"Cannot 'append' to non-textual File with extension '{self.file.extension}'.")
-
-        self.format.write(item=text, append=True)
-
-    def read_help(self) -> None:
-        self._ensure_format()
-        self.format.read_help()
-
-    def write_help(self) -> None:
-        self._ensure_format()
-        self.format.write_help()
-
-    def _ensure_format(self) -> None:
-        if self.format is None or self.file.extension not in self.format.extensions:
-            try:
-                self.format = self.mappings.get(self.file.extension, Default)(self.file)
-            except ImportError as ex:
-                raise ImportError(f"Import failed: {ex}. Please ensure this module is available in order to read or write to '{self.file.extension}' files.")
-
-    @classmethod
-    def add_format(cls, formatter_class: Type[Format]) -> None:
-        cls.extensions.update(Maybe(formatter_class.extensions).else_(set()))
-        cls.mappings.update({extension: formatter_class for extension in Maybe(formatter_class.extensions).else_({})})
-        cls.formats[formatter_class.__name__] = NameSpace({str(Str(extension).case.constant()): extension for extension in formatter_class.extensions})
-
-
 class FormatMeta(ABCMeta):
-    def __new__(mcs, name: str, bases: Any, namespace: dict) -> Type[Format]:
-        # noinspection PyTypeChecker
-        cls: Type[Format] = super().__new__(mcs, name, bases, namespace)
+    extensions: dict[str, type[Format]] = {}
 
-        cls.readfuncs, cls.writefuncs = {}, {}
+    def __new__(mcs, name: str, bases: Any, namespace: dict) -> type[Format]:
+        cls: type[Format] = super().__new__(mcs, name, bases, namespace)
 
         if cls.extensions:
-            FormatHandler.add_format(cls)
+            mcs.extensions.update({extension: cls for extension in cls.extensions})
 
         return cls
 
 
 class Format(metaclass=FormatMeta):
     """
-    An abstract base class representing a file format. Descendants must provide a 'Format.extensions' class attribute (a set of file extensions), and must update the
-    'Format.readfuncs' and 'Format.writefuncs' dictionaries to teach the class how to read from and write to files by extension.
-    The Format.initialize() classmethod must be overriden, and the Format.read(), Format.write(), Format.read_help(), and Format.write_help() methods may also be overriden
-    in situations where simply registering the currect callback to the 'Format.readfuncs' and 'Format.writefuncs' dicts is not enough (such as when the callback doesn't have the correct signature).
+    An abstract base class representing a file format. At minimum, descendants must provide set of file extensions as the 'Format.extensions' and an implementation for the
+    'Format.reader' and 'Format.writer' properties.
     """
-    extensions: Set[str] = None
-    readfuncs = writefuncs = None  # type: dict[str, Callable]
-
-    initialized = False
-    module: Any = None
+    extensions: set[str] = None
 
     def __init__(self, file: File):
         self.file = file
 
-        if not type(self).initialized:
-            self.initialize()
-            type(self).initialized = True
-
-    @classmethod
-    def initialize(cls) -> None:
-        raise RuntimeError("Must provide an implementation of Format.initialize(), which will only be called the first time the Format is instanciated. This method should import expensive modules (if needed) and update the Format.readfuncs and Format.writefuncs dictionaries.")
+    @property
+    def reader(self) -> Callable:
+        raise NotImplementedError
 
     def read(self, **kwargs: Any) -> Any:
-        print(self.file)
-        return self.readfuncs[self.file.extension](str(self.file), **kwargs)
+        return self.reader(str(self.file), **kwargs)
 
     def read_help(self) -> None:
-        help(self.readfuncs[self.file.extension])
+        help(self.reader)
+
+    @property
+    def writer(self) -> Callable:
+        raise NotImplementedError
 
     def write(self, item: Any, **kwargs: Any) -> None:
-        self.writefuncs[self.file.extension](item, str(self.file), **kwargs)
+        self.writer(item, str(self.file), **kwargs)
 
     def write_help(self) -> None:
-        help(self.writefuncs[self.file.extension])
+        help(self.writer)
 
 
 class Pdf(Format):
     extensions = {"pdf"}
 
-    @classmethod
-    def initialize(cls) -> None:
+    @property
+    def reader(self) -> Callable:
         import PyPDF2
 
-        cls.module = PyPDF2
-        cls.readfuncs.update({"pdf": cls.module.PdfFileReader})
+        return PyPDF2.PdfFileReader
+
+    @property
+    def writer(self) -> Callable:
+        raise NotImplementedError
 
 
 class Tabular(Format):
     extensions = {"xlsx", "csv"}
 
-    @classmethod
-    def initialize(cls) -> None:
-        import pandas as pd
+    @property
+    def reader(self) -> Callable:
         from sqlhandler import Frame
 
-        cls.module = pd
-        cls.readfuncs.update({"xlsx": Frame.from_excel, "csv": Frame.from_csv})
-        cls.writefuncs.update({"xlsx": Frame.to_excel, "csv": Frame.to_csv})
+        return {
+            'xlsx': Frame.from_excel,
+            'csv': Frame.from_csv,
+        }[self.file.extension]
 
-    def read_help(self) -> None:
-        help({"xlsx": self.module.read_excel, "csv": self.module.read_csv}[self.file.extension])
+    @property
+    def writer(self) -> Callable:
+        from sqlhandler import Frame
 
-    def write_help(self) -> None:
-        help({"xlsx": self.module.DataFrame.to_excel, "csv": self.module.DataFrame.to_csv}[self.file.extension])
+        return {
+            'xlsx': Frame.to_excel,
+            'csv': Frame.to_excel,
+        }[self.file.extension]
 
 
 class Word(Format):
     extensions = {"docx"}
 
-    @classmethod
-    def initialize(cls) -> None:
-        import docx
+    @property
+    def reader(self) -> Callable:
         from docx.document import Document
 
-        cls.module = docx
-        cls.readfuncs.update({"docx": cls.module.Document})
-        cls.writefuncs.update({"docx": Document.save})
+        return Document
+
+    @property
+    def writer(self) -> Callable:
+        from docx.document import Document
+
+        return Document.save
 
 
 class Image(Format):
     extensions = {"png", "jpg", "jpeg"}
 
-    @classmethod
-    def initialize(cls) -> None:
+    @property
+    def reader(self) -> Callable:
         from PIL import Image
 
-        cls.module = Image
-        cls.readfuncs.update({extension: cls.module.open for extension in cls.extensions})
-        cls.writefuncs.update({extension: cls.module.Image.save for extension in cls.extensions})
+        return Image.open
+
+    @property
+    def writer(self) -> Callable:
+        from PIL import Image
+
+        return Image.save
 
     def write(self, item: Any, **kwargs: Any) -> None:
-        self.writefuncs[self.file.extension](item.convert("RGB"), str(self.file), **kwargs)
+        self.writer(item.convert('RGB'), str(self.file), **kwargs)
 
 
 class Audio(Format):
-    extensions = {"mp3", "wav", "ogg", "flv"}
+    extensions = {'mp3', 'wav', 'ogg', 'flv'}
 
-    @classmethod
-    def initialize(cls) -> None:
+    @property
+    def reader(self) -> Callable:
         import pydub
 
-        cls.module = pydub
-        cls.readfuncs.update(
-            {
-                "mp3": cls.module.AudioSegment.from_mp3,
-                "wav": cls.module.AudioSegment.from_wav,
-                "ogg": cls.module.AudioSegment.from_ogg,
-                "flv": cls.module.AudioSegment.from_flv
-            }
-        )
-        cls.writefuncs.update(
-            {
-                "mp3": lambda *args, **kwargs: cls.module.AudioSegment.export(*args, format="mp3", **kwargs),
-                "wav": lambda *args, **kwargs: cls.module.AudioSegment.export(*args, format="wav", **kwargs),
-                "ogg": lambda *args, **kwargs: cls.module.AudioSegment.export(*args, format="ogg", **kwargs),
-                "flv": lambda *args, **kwargs: cls.module.AudioSegment.export(*args, format="flv", **kwargs)
-            }
-        )
+        return {
+            'mp3': pydub.AudioSegment.from_mp3,
+            'wav': pydub.AudioSegment.from_wav,
+            'ogg': pydub.AudioSegment.from_ogg,
+            'flv': pydub.AudioSegment.from_flv
+        }[self.file.extension]
 
-    def write_help(self) -> None:
-        help(self.module.AudioSegment.export)
+    @property
+    def writer(self) -> Callable:
+        import pydub
+
+        return pydub.AudioSegment.export
+
+    def write(self, item: Any, **kwargs: Any) -> None:
+        self.writer(item, str(self.file), format=self.file.extension, **kwargs)
 
 
 class Video(Format):
-    extensions = {"mp4", "mkv", "avi", "gif"}
+    extensions = {'mp4', 'mkv', 'avi', 'gif'}
 
-    @classmethod
-    def initialize(cls) -> None:
-        import warnings
+    @property
+    def reader(self) -> Callable:
+        from moviepy.editor import VideoFileClip
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            import moviepy.editor as edit
-
-        cls.module = edit
-        cls.readfuncs.update({extension: edit.VideoFileClip for extension in cls.extensions})
+        return VideoFileClip
 
     def read(self, **kwargs: Any) -> Any:
-        out = self.readfuncs[self.file.extension](str(self.file), **kwargs)
+        out = super().read(**kwargs)
         out._repr_html_ = MethodType(lambda this: this.ipython_display()._data_and_metadata(), out)
+
         return out
 
 
 class Compressed(Format):
-    extensions = {"zip", "tar"}
+    extensions = {'zip', 'tar'}
 
     @classmethod
     def initialize(cls) -> None:
         from pathmagic import Dir
 
-        cls.readfuncs.update({"zip": zipfile.ZipFile, "tar": tarfile.TarFile})
-        cls.writefuncs.update({"zip": Dir.compress})
+        cls.readfuncs.update()
+        cls.writefuncs.update({'zip': Dir.compress})
+
+    @property
+    def reader(self) -> Callable:
+        return {
+            'zip': zipfile.ZipFile,
+            'tar': tarfile.TarFile,
+        }[self.file.extension]
+
+    @property
+    def writer(self) -> Callable:
+        from pathmagic import Dir
+
+        return Dir.compress
 
     def read(self, **kwargs: Any) -> Dir:
         output = self.file.parent.new_dir(self.file.stem)
-        with self.readfuncs[self.file.extension](str(self.file), **kwargs) as filehandle:
-            filehandle.extractall(path=output.path)
+
+        with super().read(**kwargs) as stream:
+            stream.extractall(path=output.path)
 
         return output
 
     def write(self, item: Dir, **kwargs: Any) -> None:
-        item.compress(**kwargs)
-
-    def write_help(self) -> None:
-        help({"zip": zipfile.ZipFile.write}[self.file.extension])
+        self.writer(item, **kwargs)
 
 
-class Link(Format):
-    extensions = {"lnk"}
-
-    @classmethod
-    def initialize(cls) -> None:
-        import win32com.client as win
-        cls.module = win
-        cls.readfuncs.update({"lnk": cls._readlink})
-        cls.writefuncs.update({"lnk": cls._writelink})
-
-    def _readlink(self, linkpath: PathLike) -> PathLike:
-        shell = self.module.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(os.path.realpath(linkpath))
-        path = pathlib.Path(shortcut.Targetpath)
-
-        if path.is_file():
-            constructor = self.file.settings.file_class
-        elif path.is_dir():
-            constructor = self.file.settings.dir_class
-        else:
-            raise RuntimeError(f"Unrecognized path type of shortcut target: '{shortcut.Targetpath}'. Must be file or directory.")
-
-        return constructor(path)
-
-    def _writelink(self, item: PathLike, linkpath: PathLike) -> None:
-        shell = self.module.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(os.path.realpath(linkpath))
-        shortcut.Targetpath = os.path.realpath(item)
-        shortcut.save()
-
-
-class Serialized(Format):
-    extensions = {"pkl"}
+class Pickle(Format):
+    extensions = {'pkl', 'pickle'}
 
     def __init__(self, file: File) -> None:
         from iotools import Serializer
@@ -298,13 +215,17 @@ class Serialized(Format):
         super().__init__(file=file)
         self.serializer = Serializer(file)
 
-    @classmethod
-    def initialize(cls) -> None:
+    @property
+    def reader(self) -> Callable:
         import dill
 
-        cls.module = dill
-        cls.readfuncs.update({"pkl": cls.module.load})
-        cls.writefuncs.update({"pkl": cls.module.dump})
+        return dill.load
+
+    @property
+    def writer(self) -> Callable:
+        import dill
+
+        return dill.dump
 
     def read(self, **kwargs: Any) -> Any:
         return self.serializer.deserialize(**kwargs)
@@ -314,74 +235,79 @@ class Serialized(Format):
 
 
 class Json(Format):
-    extensions = {"json"}
+    extensions = {'json'}
 
-    @classmethod
-    def initialize(cls) -> None:
-        cls.module, cls.translator = json, TranslatableMeta.translator
-        cls.readfuncs.update({"json": json.load})
-        cls.writefuncs.update({"json": json.dump})
+    def __init__(self, file: File) -> None:
+        super().__init__(file=file)
+        self.translator = TranslatableMeta.translator
+
+    @property
+    def reader(self) -> Callable:
+        return json.load
+
+    @property
+    def writer(self) -> Callable:
+        return json.dump
 
     def read(self, namespace: bool = True, **kwargs: Any) -> Any:
-        try:
-            with open(self.file) as file:
-                return self.translator(self.readfuncs[self.file.extension](file, **kwargs))
-        except self.module.JSONDecodeError:
-            return self.file.path.read_text() or None
+        with open(self.file) as file:
+            return self.translator(self.reader(file, **kwargs))
 
-    def write(self, item: Any, indent: int = 4, **kwargs: Any) -> None:
-        with open(self.file, "w") as file:
-            self.writefuncs[self.file.extension](item, file, indent=indent, **kwargs)
+    def write(self, item: Any, **kwargs: Any) -> None:
+        kwargs = {'indent': 4} | kwargs
+
+        with open(self.file, 'w') as file:
+            self.writer(item, file, **kwargs)
 
 
 class Markup(Format):
-    extensions = {"html", "xml"}
+    extensions = {'html', 'xml'}
 
     def __init__(self, file: File) -> None:
         super().__init__(file)
         self.io = Default(file)
 
-    @classmethod
-    def initialize(cls) -> None:
-        import bs4
+    @property
+    def reader(self) -> Callable:
+        return {
+            'html': Html,
+            'xml': Xml,
+        }[self.file.extension]
 
-        cls.module = bs4
-        cls.readfuncs.update({"html": Html, "xml": Xml})
-        cls.writefuncs.update({extension: open for extension in cls.extensions})
+    @property
+    def writer(self) -> Callable:
+        return open
 
     def read(self, **kwargs: Any) -> Any:
-        return self.readfuncs[self.file.extension](self.io.read(), **kwargs)
+        return self.reader(self.io.read(), **kwargs)
 
     def write(self, item: Any, **kwargs: Any) -> None:
         self.io.write(str(item), **kwargs)
 
 
 class Default(Format):
-    extensions: Set[str] = set()
-
-    def __init__(self, file: File) -> None:
-        super().__init__(file=file)
+    extensions: set[str] = set()
 
     @classmethod
     def initialize(cls) -> None:
         cls.readfuncs = cls.writefuncs = defaultdict(lambda: open)
 
-    def read(self, **kwargs: Any) -> Optional[Str]:
-        try:
-            kwargs = kwargs if kwargs else {"encoding": "utf-8"}
-            with open(self.file, **kwargs) as filehandle:
-                return Str(filehandle.read())
-        except UnicodeDecodeError:
-            return None
+    def read(self, **kwargs: Any) -> Str:
+        kwargs = {'encoding': 'utf-8'} | kwargs
+
+        with open(self.file, **kwargs) as stream:
+            return Str(stream.read())
 
     def write(self, item: Any, append: bool = False, **kwargs: Any) -> None:
-        true_kwargs = {**{"mode": "a" if append else "w", "encoding": "utf-8"}, **kwargs}
-        with open(self.file, **true_kwargs) as filehandle:
-            if item is None:
-                pass
-            elif isinstance(item, str):
-                filehandle.write(item)
+        if item is None:
+            return
+
+        kwargs = {'mode': 'a' if append else 'w', 'encoding': 'utf-8'} | kwargs
+
+        with open(self.file, **kwargs) as stream:
+            if isinstance(item, str):
+                stream.write(item)
             elif isinstance(item, list):
-                filehandle.write("\n".join([str(line) for line in item]))
+                stream.write('\n'.join(str(line) for line in item))
             else:
-                filehandle.write(str(item))
+                stream.write(str(item))

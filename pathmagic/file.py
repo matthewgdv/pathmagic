@@ -12,7 +12,7 @@ from maybe import Maybe
 from subtypes import Process
 
 from .pathmagic import PathMagic, PathLike, Settings
-from .formats import FormatHandler, Default
+from .formats import FormatMeta, Format, Default
 
 if TYPE_CHECKING:
     from .dir import Dir
@@ -29,8 +29,6 @@ class File(PathMagic):
     filesystem when set.
     """
 
-    format = FormatHandler.formats
-
     def __init__(self, path: PathLike, settings: Settings = None) -> None:
         self._path: Optional[Path] = None
         self._parent: Optional[Dir] = None
@@ -40,7 +38,7 @@ class File(PathMagic):
         self._set_params(path, move=False)
         self.create()
 
-        self._format_handler = FormatHandler(self)
+        self._format: Format | None = None
 
     def __repr__(self) -> str:
         try:
@@ -49,7 +47,7 @@ class File(PathMagic):
             return f"{type(self).__name__}(path={repr(self.path)}, deleted=True, lines=?)"
 
     def __len__(self) -> int:
-        if isinstance(self._format_handler.format, Default):
+        if isinstance(self.format, Default):
             content = self.read()
             return content.count('\n') + 1
 
@@ -104,35 +102,45 @@ class File(PathMagic):
     def content(self, val: Any) -> None:
         self.write(val)
 
+    @property
+    def format(self) -> Format:
+        if self._format is None or self.extension not in self._format.extensions:
+            self._format = FormatMeta.extensions.get(self.extension, Default)(self)
+
+        return self._format
+
     def read(self, **kwargs: Any) -> Any:
         """
         Return the File's content as a string if it is not encoded, else attempt to return a useful Python object representing the file content (e.g. Pandas DataFrame for tabular files, etc.).
         If provided, **kwargs will be passed on to whichever function will be used to read in the File's content. Call the 'readhelp' method for that function's documentation.
         """
-        return self._format_handler.read(**kwargs)
+        return self.format.read(**kwargs)
 
     def read_help(self) -> None:
         """
         Print help documentation for the underlying reader function that is implicitly called when reading from this file type or accessing the 'content' property.
         Any '**kwargs' passed to this File's 'read' method will be passed on to the underlying reader function. Do not resupply this File's path as a kwarg.
         """
-        self._format_handler.read_help()
+        self.format.read_help()
 
     def write(self, val: Any, **kwargs: Any) -> File:
         """Write to this File object's mapped file, overwriting anything already there. Returns self."""
-        self._format_handler.write(item=val, **kwargs)
+        self.format.write(item=val, **kwargs)
         return self
 
     def write_help(self) -> None:
         """
-        Print help documentation for the underlying writer function that is implicitly called when writing to this file type or setting to the 'content' property.
+        Print help documentation for the underlying writer function that is implicitly called when writing to this file type or setting the 'content' property.
         Any '**kwargs' passed to this File's 'write' method will be passed on to the underlying writer function. Do not resupply this File's path as a kwarg.
         """
-        self._format_handler.write_help()
+        self.format.write_help()
 
     def append(self, val: str) -> File:
         """Write to the end of this File object's mapped file, leaving any existing text intact. Returns self."""
-        self._format_handler.append(text=val)
+        if not isinstance(self.format, Default):
+            raise RuntimeError(f"Cannot 'append' to non-textual File with extension '{self.extension}'.")
+
+        self.format.append(text=val)
         return self
 
     def start(self, app: str = None) -> File:
@@ -200,6 +208,7 @@ class File(PathMagic):
     def compress(self, name: str = None, **kwargs: Any) -> File:
         """Compress the content of this file into a '.zip' archive of the chosen name, and place it into this File's parent Dir. Then return that zip File. If no name is given, this File's name will be used (plus '.zip' extension)."""
         outfile: File = self.parent.new_file(f"{Maybe(name).else_(self.name)}.zip")
+
         with zipfile.ZipFile(outfile, mode="w", compression=zipfile.ZIP_DEFLATED, **kwargs) as zipper:
             zipper.write(self.path, self.name)
 
@@ -212,7 +221,7 @@ class File(PathMagic):
     @classmethod
     def from_main(cls, settings: Settings = None) -> File:
         """Create a File representing the '__main__' module's path. This method will fail under circumstances that would cause the '__main__' module's path to be undefined, such as from within jupyter notebooks."""
-        return cls(sys.modules["__main__"].__file__, settings=settings)
+        return cls(sys.modules['__main__'].__file__, settings=settings)
 
     @classmethod
     def from_resource(cls, package: ModuleType, name: str, extension: str = None, settings: Settings = None) -> File:

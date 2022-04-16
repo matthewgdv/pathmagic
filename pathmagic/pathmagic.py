@@ -130,11 +130,8 @@ class PathMagic(os.PathLike):
     def _prepare_file_if_not_exists(self, path: Path) -> None:
         self._prepare_dir_if_not_exists(path.parent)
 
-        try:
+        if not path.is_file():
             path.touch(exist_ok=True)
-        except PermissionError as ex:
-            if not Path(path).is_file():
-                raise ex
 
     def _parse_filename_args(self, name: str, /, extension: str = None) -> Path:
         raw = self.path.joinpath(name)
