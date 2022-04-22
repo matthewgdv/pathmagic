@@ -4,7 +4,6 @@ import json
 import tarfile
 import zipfile
 from abc import ABCMeta
-from collections import defaultdict
 from types import MethodType
 from typing import Any, Callable, TYPE_CHECKING
 
@@ -68,10 +67,6 @@ class Pdf(Format):
         import PyPDF2
 
         return PyPDF2.PdfFileReader
-
-    @property
-    def writer(self) -> Callable:
-        raise NotImplementedError
 
 
 class Tabular(Format):
@@ -173,13 +168,6 @@ class Video(Format):
 
 class Compressed(Format):
     extensions = {'zip', 'tar'}
-
-    @classmethod
-    def initialize(cls) -> None:
-        from pathmagic import Dir
-
-        cls.readfuncs.update()
-        cls.writefuncs.update({'zip': Dir.compress})
 
     @property
     def reader(self) -> Callable:
@@ -287,10 +275,6 @@ class Markup(Format):
 
 class Default(Format):
     extensions: set[str] = set()
-
-    @classmethod
-    def initialize(cls) -> None:
-        cls.readfuncs = cls.writefuncs = defaultdict(lambda: open)
 
     def read(self, **kwargs: Any) -> Str:
         kwargs = {'encoding': 'utf-8'} | kwargs
